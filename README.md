@@ -8,7 +8,9 @@ Purpose: Recruiting is a cornerstone of building a successful athletic team on t
 
 Data:
 • Collegiate Success Data- nationals start list (html, available on NCAA website), TFRRS (html, maybe .csv downloads), Tully Speed Ratings (for comparing performances across courses)
+
 • Collegiate Racing Data- Athletic.net (?), TFRRS (?)
+
 • High school training/location/mentality (?) Data- Strava (?)
 Weather - https://www.climate.gov/maps-data/dataset/past-weather-zip-code-data-table
 Air quailty/air pollution
