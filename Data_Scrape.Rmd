@@ -94,6 +94,112 @@ times12<-scrape_natties_data(url12, '/html/body/div[3]/div/div/div[3]/div[3]')
 ```
 
 ```{r}
+#25 teams that have qualified for nationals for 5 straight years
+teams<-intersect(intersect(intersect(intersect(unique(times18$TEAM), unique(times17$TEAM)), times16$TEAM), times15$TEAM), times14$TEAM)
+
+#######
+#NC (North Central)
+#######
+NClinks<-c(paste(rep("https://northcentralcardinals.com/sports/mens-cross-country/roster/"), c(2019:2012), sep=""))
+
+pull_NC_roster<-function(year, omit) {
+url<-paste(rep("https://northcentralcardinals.com/sports/mens-cross-country/roster/"), year, sep="")
+roster<-url %>%
+    read_html() %>%
+    html_node(xpath='//*[@id="main-content"]') %>%
+    html_text(trim=TRUE) %>%
+    stringr::str_split("\n") %>%
+    unlist()
+#remove extraneous characters
+roster=roster[roster != ""]
+roster=trimws(roster)
+roster=roster[roster != ""]
+roster<-gsub("\t", "", roster)
+roster<-gsub("\r", "", roster)
+#remove stuff above and below names that we want
+roster<-roster[-c(1:match("Name", roster)-1)]
+roster<-roster[-c(match("Men's Cross Country Coaching Staff", roster):length(roster))]
+#remove table headers
+roster<-roster[-grep("Hide/Show", roster)]
+roster<-roster[-grep("Full Bio", roster)]
+roster<-roster[-grep("Roster", roster)]
+#remove extra labels
+indices<-c(grep("Freshman", roster), grep("Sophomore", roster), grep("Junior", roster), grep("Senior", roster))
+indices_to_delete<-c()
+for (i in 1:length(indices)){
+  indices_to_delete<-c(indices_to_delete, indices[i], indices[i]+1, indices[i]+2)
+}
+roster<-roster[-indices_to_delete]
+#remove transfer info
+roster=roster[roster != ""]
+roster<-gsub("Go", "HS Team", roster)
+roster<-roster[-grep("Players", roster)]
+for (i in 1:length(omit)){
+roster<-roster[-grep(omit[i], roster)]
+}
+#return roster
+roster<-matrix(roster, ncol=match("HS Team", roster), byrow=TRUE)
+colnames(roster)<-roster[1,]
+roster<-as.data.frame(roster, header=TRUE)[c(2:dim(roster)[1]),]
+roster
+}
+
+pull_NC_roster(2019, omit=c("Monmouth College", "Harper College"))
+pull_NC_roster(2018, omit=c("Univ. of Alabama", "Harper College", "Iowa State Univ."))
+pull_NC_roster(2017, omit=c("Univ. of Alabama", "Univ. of Colorado", "Iowa State Univ.", "College of Lake County"))
+pull_NC_roster(2016, omit=c("Univ. of Alabama", "Iowa State Univ.", "Univ. of Illinois-Chicago"))
+pull_NC_roster(2015, omit=c("Univ. of Illinois-Chicago", "Univ. of Nebraska", "College of Lake County"))
+pull_NC_roster(2014, omit=c("Univ. of Portland", "Univ. of Illinois-Chicago", "Univ. of Nebraska"))
+pull_NC_roster(2013, omit=c("Univ. of Portland", "Univ. of Illinois-Chicago", "Univ. of Nebraska", "College of Lake County"))
+pull_NC_roster(2012, omit=c("Ripon Coll.", "Oklahoma State Univ."))
+
+##############
+##Pomona Pitzer
+#############
+teams[2]
+
+pull_PP_roster<-function(year){
+  url<-paste("https://www.sagehens.com/sports/mxc/", year, "-", (year%%100)+1, "/roster?view=list", sep="")
+  #get table info into R
+  info<-url %>%
+    read_html() %>%
+    html_node(xpath=paste('//*[@id="mainbody"]/div[1]/div[2]', sep="")) %>%
+    html_text(trim=TRUE) %>%
+    stringr::str_split("\n") %>%
+    unlist()
+  #trim and remove unwanted stuff
+  info<-gsub("\t", "", info)
+  info<-trimws(info)
+  info<-info[info != "Hometown/High School:"]
+  info<-info[info != "College:"]
+  info<-info[info != "Pomona"]
+  info<-info[info != "Pitzer"]
+  info<-info[info != "/"]
+  info<-info[info != "Cl.:"]
+  info<-info[info != ""]
+  info<-gsub("FY", "Fr", info)
+  info<-gsub("Fr.", "Fr", info)
+  info<-gsub("Sr.", "Sr", info)
+  info<-gsub("Jr.", "Jr", info)
+  info<-gsub("So.", "So", info)
+  info<-info[str_length(info) > 1]
+  
+  #read data into matrix
+  roster<-matrix(ncol=4, nrow=floor(length(info)/5))
+  for (i in 1:floor(length(info)/5)){
+    roster[i,1]<-paste(info[5*i], info[5*i+1], sep=" ")
+    roster[i,2]<-info[5*i+2]
+    roster[i,3]<-info[5*i+3]
+    roster[i,4]<-info[5*i+4]
+  }
+  #convert to df
+  roster<-as.data.frame(roster)
+  colnames(roster)<-c("Name", "Year", "Hometown", "High School")
+  roster
+}
+
+pull_PP_roster(year=2012)
+
 
 ```
 
