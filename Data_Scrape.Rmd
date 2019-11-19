@@ -10,6 +10,7 @@ library(pdftools)
 library(xml2)
 library(XML)
 library(RCurl)
+`%notin%` <- Negate(`%in%`)
 
 
 #############################
@@ -200,6 +201,63 @@ pull_PP_roster<-function(year){
 
 pull_PP_roster(year=2012)
 
+
+#########
+###Wis.-La Crosse
+#########
+teams[3]
+
+pull_WLC_roster<-function(year) {
+url<-paste(rep("https://uwlathletics.com/sports/mens-cross-country/roster/"), year, sep="")
+roster<-url %>%
+    read_html() %>%
+    html_node(xpath='//*[@id="main-content"]') %>%
+    html_text(trim=TRUE) %>%
+    stringr::str_split("\n") %>%
+    unlist()
+#remove extraneous characters
+roster=roster[roster != ""]
+roster=trimws(roster)
+roster=roster[roster != ""]
+roster<-gsub("\t", "", roster)
+roster<-roster %>% str_replace("\r", "")
+#remove stuff above and below names that we want
+roster<-roster[-c(1:match("Name", roster)-1)]
+roster<-roster[-c(grep("Men's Cross Country Coaching Staff", roster):length(roster))]
+#remove table headers
+roster<-roster[-grep("Hide/Show", roster)]
+roster<-roster[-grep("Full Bio", roster)]
+roster<-roster[-grep("Roster", roster)]
+#remove extra labels
+if (year<2017){
+indices<-c(seq(9, 142, by=6), seq(10, 142, by=6))
+roster<-roster[-indices]}
+else{
+indices<-c(grep("Freshman", roster), grep("Sophomore", roster), grep("Junior", roster), grep("Senior", roster))
+indices_to_delete<-c()
+for (i in 1:length(indices)){
+  indices_to_delete<-c(indices_to_delete, indices[i], indices[i]+1, indices[i]+2)
+}
+roster<-roster[-indices_to_delete]
+}
+#remove transfer info
+roster=roster[roster != ""]
+roster<-gsub("Go", "HS Team", roster)
+if ("Class" %notin% roster) {
+  roster=c("Class", roster)
+}
+roster<-roster[-match("Players", roster)]
+#return roster
+roster<-matrix(roster, ncol=4, byrow=TRUE)
+colnames(roster)<-roster[1,]
+roster<-as.data.frame(roster, header=TRUE)[c(2:dim(roster)[1]),]
+roster
+}
+
+pull_WLC_roster(2019)
+pull_WLC_roster(2018)
+pull_WLC_roster(2016)
+pull_WLC_roster(2012)
 
 ```
 
