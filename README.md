@@ -2,49 +2,24 @@
 
 Group Members: Ethan Ashby, Danny Rosen, Nate Stringham
  
-Title: Predicting Distance Running Success in College
+Title: Using Simulations to Determine How Well Different Programs "Peak"
  
-Purpose: Recruiting is a cornerstone of building a successful athletic team on the collegiate level. However, NCAA coaches often assume that athletic success in high school will translate onto the collegiate level, but due to differences in maturation rates, issues related to injuries/burnout, adaptation to a new living/training environment, and many more factors, many high school athletes overperform or underperform relative to their high school achievements. Distance running poses a unique data-driven opportunity, predictive modeling of collegiate success from high school athletic background: “success” is quantifiable by race times or places, and training data is readily available through online applications like Strava (an online training log) and TFRRS (a database of collegiate race results). Thus, finding a way to better predict collegiate success from high school achievements could aid NCAA cross country coaches in their recruiting efforts and help construct better, championship-contending programs. 
+
+Purpose: The ability of a program to peak its runners well at the end of the season is often what determines national champions. To determine how well programs peak their athletes, we will use simulations of cross country results to score a hypothetical "national meet". To run the simulation, we determine a "speed rating" for each athlete in the Divison at each meet. For each athlete, we maintain a vector of speed ratings from the current season, with more recent performances weighted more heavily than early season -- either we do this or we assume the performances are normally distributed and sample from a normal distribution with a variance calculated from our speed ratings. Then we sample from each athlete's vector and sort the athletes into a meet ranking, which we then score as a cross country meet. We compare the actual nationals result from that year to our simulated result to determine how well a team peaked. We can do this over a number of years to evaluate different programs. We assign a score to each program based on how consistently they peaked at the national meet and how far they exceeded our simulated expectation of their finish at the national meet. IF we have time we'll make a shiny app!
+ 
+
 
 Data:
 
-• Collegiate Success Data- nationals start list (html, available on NCAA website), TFRRS (html, maybe .csv downloads), Tully Speed Ratings (for comparing performances across courses)
+• TFRRS 
 
-• Collegiate Racing Data- Athletic.net (?), TFRRS (?)
 
-• High school training/location/mentality (?) Data- Strava (?)
-Weather - https://www.climate.gov/maps-data/dataset/past-weather-zip-code-data-table
-Air quailty/air pollution
 
-Variables (to consider):
+Trying to assess College Program Peaking Success
 
-Trying to predict: collegiate success (qualifying for nationals, place at nationals, times)
-
-Predictors/features:
-
-·      High school times/speed ratings
-
-·      Places at high profile high school meets
-
-·      School (program may over/undertrain athletes)
-
-·      Level of competition- running in competitive California meets or are they the fastest kid in their small Midwest town?
-
-·      Geography- where they lived in HS & where they live & train now
  
 Potential end products:
- 	-- build a classifier (random forest, bayesian classifier?) of NCAA qualifiers
-		--input variables 
-			--high school times/speed ratings
-				--800, 1600, 3200 , avg speed rating from senior season
-				-- junior season progression?
-			--places in high profile races
-			--state 
-			--”competition coefficient” - quality of races
-			-- weather (avg temp, humidity, air quality, etc)
-		--output
-			--whether or not they qualify for nationals in XC/Track
-			--likelihood of qualifying?
+ 	-- List of teams ranked by how well they peaked each season.
 	-- shiny app 
 			
 Warlock of Wrangling: Danny Rosen
