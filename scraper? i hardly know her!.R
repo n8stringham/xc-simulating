@@ -48,7 +48,7 @@ for(url in urls) {
 }
 
 
-#####Pulling meet results
+#####Pulling meet results for national qualifying teams
 urls<-c("https://www.tfrrs.org/teams/CA_college_m_Claremont_Mudd_Scripps.html", 
         "https://www.tfrrs.org/teams/CA_college_m_Pomona_Pitzer.html", "https://www.tfrrs.org/teams/IL_college_m_North_Central_IL.html",
         "https://www.tfrrs.org/teams/MA_college_m_Williams.html", "https://www.tfrrs.org/teams/MO_college_m_Washington_U.html",
@@ -79,8 +79,18 @@ for(url in urls) {
   dates_and_links<-cbind(dates, links)
   name=stringr::str_split(url, "_m_")[[1]][2]
   name=stringr::str_split(name, ".html")[[1]][1]
+  dates_and_links=as.data.frame(dates_and_links)
+  dates_and_links=dates_and_links %>% filter(grepl(2019, dates_and_links$dates))
   team_races[[name]]<-dates_and_links
 }
 
-######
+
+
+######Bijon Race Adjustments
+
+webpage<-read_html("https://bijanmazaheri.wordpress.com/2019/11/18/2019-diii-meet-adjustments-men/")
+table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+course_corrections<-as.data.frame(table_of_tables[[1]])
+colnames(course_corrections)<-c("Meet", "Score")
+course_corrections<-course_corrections %>% filter(Meet!="Meet")
 
