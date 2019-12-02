@@ -13,6 +13,7 @@ nationals_urls <- c("https://www.tfrrs.org/results/xc/15028", "https://www.tfrrs
                     "https://www.tfrrs.org/results/xc/9349/", "https://www.tfrrs.org/results/xc/11260/",
                     "https://www.tfrrs.org/results/xc/6216/")
 
+
 df <- data.frame(PL=integer(),
                  NAME=character(),
                  YEAR=character(),
@@ -47,4 +48,39 @@ for(url in urls) {
 }
 
 
+#####Pulling meet results
+urls<-c("https://www.tfrrs.org/teams/CA_college_m_Claremont_Mudd_Scripps.html", 
+        "https://www.tfrrs.org/teams/CA_college_m_Pomona_Pitzer.html", "https://www.tfrrs.org/teams/IL_college_m_North_Central_IL.html",
+        "https://www.tfrrs.org/teams/MA_college_m_Williams.html", "https://www.tfrrs.org/teams/MO_college_m_Washington_U.html",
+        "https://www.tfrrs.org/teams/MD_college_m_Johns_Hopkins.html", "https://www.tfrrs.org/teams/WI_college_m_Wis_La_Crosse.html",
+        "https://www.tfrrs.org/teams/NY_college_m_Geneseo_St.html", "https://www.tfrrs.org/teams/MA_college_m_MIT.html",
+        "https://www.tfrrs.org/teams/NY_college_m_RPI.html", "https://www.tfrrs.org/teams/MN_college_m_Carleton.html", 
+        "https://www.tfrrs.org/teams/IL_college_m_U_of_Chicago.html", "https://www.tfrrs.org/teams/IA_college_m_Wartburg.html",
+        "https://www.tfrrs.org/teams/xc/MI_college_m_Calvin.html", "https://www.tfrrs.org/teams/xc/NY_college_m_St_Lawrence.html",
+        "https://www.tfrrs.org/teams/xc/ME_college_m_Colby.html", "https://www.tfrrs.org/teams/xc/GA_college_m_Emory.html", 
+        "https://www.tfrrs.org/teams/xc/PA_college_m_Carnegie_Mellon.html", "https://www.tfrrs.org/teams/xc/OH_college_m_John_Carroll.html",
+        "https://www.tfrrs.org/teams/xc/OH_college_m_Otterbein.html", "https://www.tfrrs.org/teams/xc/WI_college_m_Wis_Stout.html",
+        "https://www.tfrrs.org/teams/xc/CA_college_m_UC_Santa_Cruz.html", "https://www.tfrrs.org/teams/xc/MA_college_m_Amherst.html",
+        "https://www.tfrrs.org/teams/xc/OH_college_m_Case_Western.html", "https://www.tfrrs.org/teams/xc/MN_college_m_St_Olaf.html",
+        "https://www.tfrrs.org/teams/xc/NY_college_m_Ithaca.html", "https://www.tfrrs.org/teams/xc/PA_college_m_Haverford.html",
+        "https://www.tfrrs.org/teams/xc/MN_college_m_St_Thomas.html", "https://www.tfrrs.org/teams/xc/VT_college_m_Middlebury.html",
+        "https://www.tfrrs.org/teams/xc/KY_college_m_Berea.html", "https://www.tfrrs.org/teams/xc/NY_college_m_Oneonta.html",
+        "https://www.tfrrs.org/teams/xc/ME_college_m_Bates.html")
+
+team_races<-list()
+for(url in urls) {
+  webpage <- read_html(url)
+  print("read webpage")
+  links_tmp=str_match_all(webpage, "<a href=\"(.*?)\"")
+  links=links_tmp[[1]][,2]
+  links=links[grepl("results/xc", links)]
+  table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+  dates=table_of_tables[[2]]$DATE[grepl("Nov|Oct|Sep|Aug", table_of_tables[[2]]$DATE)]
+  dates_and_links<-cbind(dates, links)
+  name=stringr::str_split(url, "_m_")[[1]][2]
+  name=stringr::str_split(name, ".html")[[1]][1]
+  team_races[[name]]<-dates_and_links
+}
+
+######
 
