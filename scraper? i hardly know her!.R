@@ -4,6 +4,7 @@ library(xml2)
 library(stringi)
 library(dplyr)
 library(stringr)
+library(tidyverse)
 urls <- c("https://www.tfrrs.org/results/xc/16561", "https://www.tfrrs.org/results/xc/16562",
            "https://www.tfrrs.org/results/xc/16563", "https://www.tfrrs.org/results/xc/16564",
           "https://www.tfrrs.org/results/xc/16565", "https://www.tfrrs.org/results/xc/16567", 
@@ -84,7 +85,48 @@ for(url in urls) {
   team_races[[name]]<-dates_and_links
 }
 
+####Pomona Pitzer Races
+PPraces<-team_races$Pomona_Pitzer[grep("2019", team_races$Pomona_Pitzer[,1]),]
+PPlinks<-paste("https:", gsub("%0A", "%250A", PPraces[,2]), sep="")
 
+df <- data.frame(PL=integer(),
+                 NAME=character(),
+                 YEAR=character(),
+                 TEAM=character(),
+                 TIME=character(),
+                 COURSE=character(),
+                 DATE=character()
+)
+
+for(url in PPlinks) {
+  print(url)
+  webpage <- read_html(url)
+  print("read webpage")
+  table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+  titles <- html_nodes(webpage, "h3")
+  courses <- html_nodes(webpage, ".inline-block")
+  table_index <- 2
+    #generate possible indices
+    
+    if(length(titles)>length(table_of_tables)){titles=titles[2:length(titles)]}
+    poss_indices=grep("8K|8000|8,000|8k|6k|6000|6,000|6K", titles)
+    for(i in 1:length(poss_indices)) {
+    if(grepl("Individual", titles[poss_indices[i]])) {
+      table_index <- poss_indices[i]
+      print(table_index)
+      current_data <- table_of_tables[[table_index]] %>% select(NAME, YEAR, TEAM, TIME)
+      current_data <- current_data %>% mutate(DATE=html_text(courses[4][1]))
+      if(str_length(html_text(courses[5][1])) > 4) {
+        current_data <- current_data %>% mutate(COURSE=html_text(courses[5][1]))
+      } else {
+        current_data <- current_data %>% mutate(COURSE="NA")
+      }
+      df <- rbind(df, current_data)
+    }
+  }
+}
+
+df %>% filter(TEAM=="Pomona-Pitzer") %>% View()
 
 ######Bijon Race Adjustments
 
