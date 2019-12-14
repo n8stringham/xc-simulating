@@ -24,7 +24,7 @@ df <- data.frame(PL=integer(),
 
 for(url in urls) {
   webpage <- read_html(url)
-  print("read webpage")
+  #print("read webpage")
   table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
   titles <- html_nodes(webpage, "h3")
   courses <- html_nodes(webpage, ".inline-block")
@@ -34,7 +34,7 @@ for(url in urls) {
       table_index <- i
       print(table_index)
       current_data <- table_of_tables[[table_index]] %>% select(NAME, YEAR, TEAM, TIME)
-      current_data <- current_data %>% mutate(DATE=html_text(courses[4][1]))
+      current_data <- current_data %>% mutate(DATE=html_text(courses[4][]))
       if(str_length(html_text(courses[5][1])) > 4) {
         current_data <- current_data %>% mutate(COURSE=html_text(courses[5][1]))
       } else {
