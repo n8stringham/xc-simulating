@@ -159,7 +159,7 @@ urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.
 ```
 
 
-```{r}
+```{r scraper, cache=TRUE}
 team_races<-list()
 for(url in urls) {
   print(url)
@@ -200,7 +200,8 @@ resdf <- data.frame(PL=integer(),
                  TEAM=character(),
                  TIME=character(),
                  COURSE=character(),
-                 DATE=character()
+                 DATE=character(),
+                 MEETNAME=character()
 )
 
 for(url in racelinks) {
@@ -209,6 +210,7 @@ for(url in racelinks) {
   print("read webpage")
   table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
   titles <- html_nodes(webpage, "h3")
+  meetnamelinks <-html_nodes(webpage, "a")
   courses <- html_nodes(webpage, ".inline-block")
   table_index <- 2
     #generate possible indices
@@ -223,21 +225,20 @@ for(url in racelinks) {
       print(table_index)
       current_data <- table_of_tables[[table_index]] %>% select(NAME, YEAR, TEAM, TIME)
       current_data <- current_data %>% mutate(DATE=html_text(courses[4][1]))
+      current_data <- current_data %>% mutate(MEETNAME=html_text(meetnamelinks[[14]]))
       if(str_length(html_text(courses[5][1])) > 4) {
         current_data <- current_data %>% mutate(COURSE=html_text(courses[5][1]))
       } else {
         current_data <- current_data %>% mutate(COURSE="NA")
       }
-      df <- rbind(df, current_data)
+      resdf <- rbind(resdf, current_data)
     }
   }
 }
 }
-season_results[[j]]<-df %>% filter(TEAM==names(team_races)[j])
+season_results[[j]]<-resdf %>% filter(TEAM==names(team_races)[j])
 }
-
 teamnames
-
 
 ```
 
@@ -258,22 +259,49 @@ all_results<-all_results %>% filter(TEAM %in% teams)
 runners=table_of_tables[[2]]$NAME
 filtered_results<-all_results %>% filter(NAME %in% runners)
 ###Mutate MEETNAME column so that it matches Bijan's Course Corrections
-filtered_results<- filtered_results %>% mutate(MEETNAME_CORR=str_replace_all(MEETNAME, " ", "_"))
+filtered_results<- filtered_results %>% mutate(MEETNAME_CORR=str_replace_all(MEETNAME, " ", "_")) %>% mutate(MEETNAME_CORR=str_replace_all(MEETNAME_CORR, "/", ""))
+
+filtered_results <- filtered_results %>% mutate(MEETNAME_CORR=ifelse(MEETNAME_CORR == "2019_Centennial_Conference_Championships", "2019_Centennial_Conference_Championships_", MEETNAME_CORR))
+
+filtered_results <- filtered_results %>% mutate(MEETNAME_CORR=ifelse(MEETNAME_CORR == "Jim_Drews/Tori_Neubauer_Invitational", "Jim_DrewsTori_Neubauer_Invitational", MEETNAME_CORR))
+
+filtered_results <- filtered_results %>% mutate(MEETNAME_CORR=ifelse(MEETNAME_CORR == "Williams_Invitational", "NESCAC_Cross_Country_Championships", MEETNAME_CORR))
+
+filtered_results <- filtered_results %>% mutate(MEETNAME_CORR=ifelse(MEETNAME_CORR == "Rhodes_College_Cross_Country_Invitational", "Rhodes_College_Cross_Country_Invitational_", MEETNAME_CORR))
+
+filtered_results <- filtered_results %>% filter(MEETNAME != "2019 ACAA Conference Cross Country Championships
+" & MEETNAME != "NCAA Division III Cross Country Championships")
+
+filtered_results <- filtered_results %>% mutate(MEETNAME_CORR=ifelse(MEETNAME_CORR == "Rhodes_College_Cross_Country_Invitational", "Rhodes_College_Cross_Country_Invitational_", MEETNAME_CORR))
+
+filtered_results <-  left_join(filtered_results, course_corrections, 
+                               by=c("MEETNAME_CORR" = "Meet"))
 
 
-####Now create split dataframe where each index is a runner and their races are included
-split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
 
 
-
-
-###Lubridate over the list
-library(lubridate)
-period_to_seconds(ms("12:12:54"))
 
 
 ```
 
+```{r}
+###Lubridate over the list
+
+View(filtered_results)
+library(lubridate)
+period_to_seconds(ms("12:54.7"))
+filtered_results <- filtered_results %>% mutate(ADJ_TIME=(period_to_seconds(ms(filtered_results$TIME))-as.numeric(filtered_results$Score)))
+
+View(filtered_results)
+
+
+```
+
+```{r}
+####Now create split dataframe where each index is a runner and their races are included
+split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
+
+```
 
 
 ```{r}
