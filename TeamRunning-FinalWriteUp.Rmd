@@ -216,8 +216,10 @@ for(url in racelinks) {
     #generate possible indices
     
     if(length(titles)>length(table_of_tables)){titles=titles[2:length(titles)]}
+    if(length(titles)<length(table_of_tables)){function(){}}
+    else{
     poss_indices=grep("8K|8000|8,000|8k", titles)
-    if (length(poss_indices)==0){break}
+    if (length(poss_indices)==0){function(){}}
     else{
     for(i in 1:length(poss_indices)) {
     if(grepl("Individual", titles[poss_indices[i]])) {
@@ -232,14 +234,39 @@ for(url in racelinks) {
         current_data <- current_data %>% mutate(COURSE="NA")
       }
       resdf <- rbind(resdf, current_data)
-    }
+    }}
   }
 }
 }
 season_results[[j]]<-resdf %>% filter(TEAM==names(team_races)[j])
 }
-teamnames
 
+all_results <- data.frame(NAME=character(),
+                 YEAR=character(),
+                 TEAM=character(),
+                 TIME=character(),
+                 COURSE=character(),
+                 DATE=character(),
+                 MEETNAME=character())
+for(i in seq(1, 82)) {
+    all_results = rbind(all_results, season_results[[i]])
+}
+all_results <- all_results %>% mutate(MEETNAME=str_trim(MEETNAME))
+write.csv(all_results, "2019_all_results3.csv")
+
+
+all_results <- data.frame(NAME=character(),
+                 YEAR=character(),
+                 TEAM=character(),
+                 TIME=character(),
+                 COURSE=character(),
+                 DATE=character(),
+                 MEETNAME=character())
+for(i in seq(1, 54)) {
+    all_results = rbind(all_results, season_results[[i]])
+}
+all_results <- all_results %>% mutate(MEETNAME=str_trim(MEETNAME))
+write.csv(all_results, "2019_all_results2.csv")
 ```
 
 ```{r}
@@ -256,7 +283,7 @@ course_corrections<-course_corrections %>% filter(Meet!="Meet")
 #########################
 ###get teams that qualified and only select their top 7 runners
 #########################
-all_results<-read.csv("2019_all_results.csv")
+all_results<-read.csv("2019_all_results3.csv")
 ###Get teams who qualified to nationals
 url="https://www.tfrrs.org/results/xc/16726/NCAA_Division_III_Cross_Country_Championships"
 webpage <- read_html(url)
@@ -287,10 +314,6 @@ filtered_results <-  left_join(filtered_results, course_corrections,
                                by=c("MEETNAME_CORR" = "Meet"))
 
 
-
-
-
-
 ```
 
 ```{r}
@@ -301,18 +324,46 @@ library(lubridate)
 period_to_seconds(ms("12:54.7"))
 filtered_results <- filtered_results %>% mutate(ADJ_TIME=(period_to_seconds(ms(filtered_results$TIME))-as.numeric(filtered_results$Score)))
 
-View(filtered_results)
+
 ```
 
 ```{r}
 ####Now create split dataframe where each index is a runner and their races are included
 split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
+```
 
-View(split_results)
-for(person in split_results){
-  random_shit <- person %>% group_by(NAME) %>% summarize(MEAN=mean(ADJ_TIME, na.rm=TRUE), SD=sd(ADJ_TIME, na.rm = TRUE))
+```{r}
+df <- data.frame(INDEX=numeric(), MEAN=numeric(), SD=numeric())
+teams <- c()
+
+for(i in seq(1, length(split_results))){
+
+  personal.mean <- split_results[[i]] %>% group_by(NAME) %>% summarize(MEAN=mean(ADJ_TIME, na.rm=TRUE)) %>% pull()
+  personal.sd <- split_results[[i]] %>% group_by(NAME) %>% summarize(SD=sd(ADJ_TIME, na.rm = TRUE)) %>% pull()
+  teams <- append(teams, as.character(split_results[[i]]$TEAM[1]))
+
+  df[nrow(df) + 1,] = c(i, personal.mean, personal.sd)
 }
 
+df$NAMES <- names(split_results)
+df$TEAMS <- teams
+
+sim.df <- data.frame(SIMTIME=numeric())
+##one iteration of the sim we want to do
+for(j in seq(1, nrow(df))) {
+    sim.df[nrow(sim.df) + 1,] = c(rnorm(1, df$MEAN[j], df$SD[j]))
+}
+sim.df$NAMES=names(split_results)
+sim.df$TEAMS=df$TEAMS
+
+ordered_results_simulated <- sim.df %>% arrange(SIMTIME)
+ordered_results_simulated$SCORE = seq(1,nrow(ordered_results_simulated))
+
+team_scores <- arrange(ordered_results_simulated %>% group_by(TEAMS) %>% 
+                        summarize(TEAM_SCORE=sum(head(SCORE, 5))), TEAM_SCORE)
+
+View(team_scores)
+View(ordered_results_simulated)
 ```
 
 
