@@ -242,6 +242,39 @@ teamnames
 ```
 
 
+```{r}
+#########################
+###get teams that qualified and only select their top 7 runners
+#########################
+all_results<-read.csv("2019_all_results.csv")
+###Get teams who qualified to nationals
+url="https://www.tfrrs.org/results/xc/16726/NCAA_Division_III_Cross_Country_Championships"
+webpage <- read_html(url)
+print("read webpage")
+table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+teams=table_of_tables[[1]]$Team
+all_results<-all_results %>% filter(TEAM %in% teams)
+#filter for runners who ran at nationals
+runners=table_of_tables[[2]]$NAME
+filtered_results<-all_results %>% filter(NAME %in% runners)
+###Mutate MEETNAME column so that it matches Bijan's Course Corrections
+filtered_results<- filtered_results %>% mutate(MEETNAME_CORR=str_replace_all(MEETNAME, " ", "_"))
+
+
+####Now create split dataframe where each index is a runner and their races are included
+split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
+
+
+
+
+###Lubridate over the list
+library(lubridate)
+period_to_seconds(ms("12:12:54"))
+
+
+```
+
+
 
 ```{r}
 ######Bijon Race Adjustments
