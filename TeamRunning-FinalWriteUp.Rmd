@@ -242,6 +242,15 @@ teamnames
 
 ```
 
+```{r}
+######Bijon Race Adjustments
+
+webpage<-read_html("https://bijanmazaheri.wordpress.com/2019/11/18/2019-diii-meet-adjustments-men/")
+table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+course_corrections<-as.data.frame(table_of_tables[[1]])
+colnames(course_corrections)<-c("Meet", "Score")
+course_corrections<-course_corrections %>% filter(Meet!="Meet")
+```
 
 ```{r}
 #########################
@@ -293,24 +302,19 @@ period_to_seconds(ms("12:54.7"))
 filtered_results <- filtered_results %>% mutate(ADJ_TIME=(period_to_seconds(ms(filtered_results$TIME))-as.numeric(filtered_results$Score)))
 
 View(filtered_results)
-
-
 ```
 
 ```{r}
 ####Now create split dataframe where each index is a runner and their races are included
 split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
 
+View(split_results)
+for(person in split_results){
+  random_shit <- person %>% group_by(NAME) %>% summarize(MEAN=mean(ADJ_TIME, na.rm=TRUE), SD=sd(ADJ_TIME, na.rm = TRUE))
+}
+
 ```
 
 
-```{r}
-######Bijon Race Adjustments
 
-webpage<-read_html("https://bijanmazaheri.wordpress.com/2019/11/18/2019-diii-meet-adjustments-men/")
-table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
-course_corrections<-as.data.frame(table_of_tables[[1]])
-colnames(course_corrections)<-c("Meet", "Score")
-course_corrections<-course_corrections %>% filter(Meet!="Meet")
-```
 
