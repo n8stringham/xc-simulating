@@ -23,7 +23,7 @@ library(tidyverse)
 ```
 
 
-```{r}
+```{r Initial Codestuff, cache=TRUE}
 ###Initial codestuff
 urls <- c("https://www.tfrrs.org/results/xc/16561", "https://www.tfrrs.org/results/xc/16562",
            "https://www.tfrrs.org/results/xc/16563", "https://www.tfrrs.org/results/xc/16564",
@@ -70,7 +70,7 @@ for(url in urls) {
 
 ```
 
-```{r}
+```{r Get Team Names, cache=TRUE}
 ###########
 ##Meet Results for National Qualifiers
 ###########
@@ -111,7 +111,7 @@ for(i in 1:length(titles[])) {
 teamnames<-unique(df$TEAM)
 ```
 
-```{r}
+```{r URLS, cache=TRUE}
 #####Pulling meet results for national qualifiers
 urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.tfrrs.org/teams/MN_college_m_Carleton.html", 
         "https://www.tfrrs.org/teams/CA_college_m_Claremont_Mudd_Scripps.html", "https://www.tfrrs.org/teams/MD_college_m_Johns_Hopkins.html",
@@ -216,8 +216,10 @@ for(url in racelinks) {
     #generate possible indices
     
     if(length(titles)>length(table_of_tables)){titles=titles[2:length(titles)]}
+    if(length(titles)<length(table_of_tables)){function(){}}
+    else{
     poss_indices=grep("8K|8000|8,000|8k", titles)
-    if (length(poss_indices)==0){break}
+    if (length(poss_indices)==0){function(){}}
     else{
     for(i in 1:length(poss_indices)) {
     if(grepl("Individual", titles[poss_indices[i]])) {
@@ -232,17 +234,29 @@ for(url in racelinks) {
         current_data <- current_data %>% mutate(COURSE="NA")
       }
       resdf <- rbind(resdf, current_data)
-    }
+    }}
   }
 }
 }
 season_results[[j]]<-resdf %>% filter(TEAM==names(team_races)[j])
 }
-teamnames
+
+all_results <- data.frame(NAME=character(),
+                 YEAR=character(),
+                 TEAM=character(),
+                 TIME=character(),
+                 COURSE=character(),
+                 DATE=character(),
+                 MEETNAME=character())
+for(i in seq(1, 82)) {
+    all_results = rbind(all_results, season_results[[i]])
+}
+all_results <- all_results %>% mutate(MEETNAME=str_trim(MEETNAME))
+write.csv(all_results, "2019_all_results3.csv")
 
 ```
 
-```{r}
+```{r Bijon's Race Adjustments, cache=TRUE}
 ######Bijon Race Adjustments
 
 webpage<-read_html("https://bijanmazaheri.wordpress.com/2019/11/18/2019-diii-meet-adjustments-men/")
@@ -252,11 +266,11 @@ colnames(course_corrections)<-c("Meet", "Score")
 course_corrections<-course_corrections %>% filter(Meet!="Meet")
 ```
 
-```{r}
+```{r RUN Analysis, cache=TRUE}
 #########################
 ###get teams that qualified and only select their top 7 runners
 #########################
-all_results<-read.csv("2019_all_results.csv")
+all_results<-read.csv("2019_all_results3.csv")
 ###Get teams who qualified to nationals
 url="https://www.tfrrs.org/results/xc/16726/NCAA_Division_III_Cross_Country_Championships"
 webpage <- read_html(url)
@@ -287,7 +301,7 @@ filtered_results <-  left_join(filtered_results, course_corrections,
                                by=c("MEETNAME_CORR" = "Meet"))
 
 
-
+View(filtered_results)
 
 
 
@@ -298,7 +312,6 @@ filtered_results <-  left_join(filtered_results, course_corrections,
 
 View(filtered_results)
 library(lubridate)
-period_to_seconds(ms("12:54.7"))
 filtered_results <- filtered_results %>% mutate(ADJ_TIME=(period_to_seconds(ms(filtered_results$TIME))-as.numeric(filtered_results$Score)))
 
 View(filtered_results)
@@ -308,10 +321,15 @@ View(filtered_results)
 ####Now create split dataframe where each index is a runner and their races are included
 split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
 
-View(split_results)
-for(person in split_results){
-  random_shit <- person %>% group_by(NAME) %>% summarize(MEAN=mean(ADJ_TIME, na.rm=TRUE), SD=sd(ADJ_TIME, na.rm = TRUE))
+mean_SD_matrix<-matrix(ncol=2)
+for(person in names(split_results)){
+  person="Ashby, Ethan"
+  tmp=split_results[[person]]
+  mean_SD <- c(MEAN=mean(tmp$ADJ_TIME, na.rm=TRUE), SD=sd(tmp$ADJ_TIME, na.rm = TRUE))
+  mean_SD_matrix<-rbind(mean_SD_matrix, mean_SD)
 }
+mean_SD_matrix<-na.exclude(mean_SD_matrix)
+rownames(mean_SD_matrix)<-names(split_results)
 
 ```
 
