@@ -63,7 +63,8 @@ df <- data.frame(PL=integer(),
                  TEAM=character(),
                  TIME=character(),
                  COURSE=character(),
-                 DATE=character()
+                 DATE=character(),
+                 MEETNAME=character()
 )
 
 url="https://www.tfrrs.org/results/xc/16726/NCAA_Division_III_Cross_Country_Championships"
@@ -175,7 +176,8 @@ resdf <- data.frame(PL=integer(),
                  TEAM=character(),
                  TIME=character(),
                  COURSE=character(),
-                 DATE=character()
+                 DATE=character(),
+                 MEETNAME=character()
 )
 
 for(url in racelinks) {
@@ -184,6 +186,7 @@ for(url in racelinks) {
   print("read webpage")
   table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
   titles <- html_nodes(webpage, "h3")
+  meetnamelinks <-html_nodes(webpage, "a")
   courses <- html_nodes(webpage, ".inline-block")
   table_index <- 2
     #generate possible indices
@@ -198,17 +201,18 @@ for(url in racelinks) {
       print(table_index)
       current_data <- table_of_tables[[table_index]] %>% select(NAME, YEAR, TEAM, TIME)
       current_data <- current_data %>% mutate(DATE=html_text(courses[4][1]))
+      current_data <- current_data %>% mutate(MEETNAME=html_text(meetnamelinks[[14]]))
       if(str_length(html_text(courses[5][1])) > 4) {
         current_data <- current_data %>% mutate(COURSE=html_text(courses[5][1]))
       } else {
         current_data <- current_data %>% mutate(COURSE="NA")
       }
-      df <- rbind(df, current_data)
+      resdf <- rbind(resdf, current_data)
     }
   }
 }
 }
-season_results[[j]]<-df %>% filter(TEAM==names(team_races)[j])
+season_results[[j]]<-resdf %>% filter(TEAM==names(team_races)[j])
 }
 
 teamnames
