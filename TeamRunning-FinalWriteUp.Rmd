@@ -422,8 +422,15 @@ prob_ranks<-ranking_jumps$TEAMS
 ranking_jumps$TEAMS<-factor(ranking_jumps$TEAMS, levels=prob_ranks)
 
 ggplot(ranking_jumps, aes(x=TEAMS, y=Rankings_Jump))+geom_bar(aes(fill=Norm_Prob_Rank), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet")+coord_flip()
-
 ```
 
 
+```{r Score Differential}
+#Look at Scoring Differentials
+score_differential=sim_stats %>% filter(PLACES==2) %>% select(SCORES) - sim_stats %>% filter(PLACES==1) %>% select(SCORES)
+champions=sim_stats %>% filter(PLACES==1)%>% select(TEAMS)
+differentials=cbind(champions, score_differential)
+
+differentials %>% group_by(TEAMS) %>% summarize(mean_diff=mean(SCORES))
+```
 
