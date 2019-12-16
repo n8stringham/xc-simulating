@@ -18,6 +18,9 @@ library(stringi)
 library(dplyr)
 library(stringr)
 library(tidyverse)
+library(ggplot2)
+library(plotly)
+library(RColorBrewer)
 
 ?distinct()
 ```
@@ -365,15 +368,13 @@ total_stats=do.call(rbind, total_stats)
 total_stats$PLACES<-as.factor(total_stats$PLACES)
 ```
 
-```{r}
+```{r Interactive Plot with Win Probabilities}
 #######
 #Interactive Plotly Bar Chart w/ Various Place Probabilities
 #######
 
 b<-sim_stats %>% group_by(TEAMS) %>% summarize(On_Podium=n()/100, P_first=sum(PLACES==1)/100, P_second=sum(PLACES==2)/100, P_third=sum(PLACES==3)/100, P_fourth=sum(PLACES==4)/100) %>% dplyr::arrange(desc(On_Podium))
 
-library(ggplot2)
-library(plotly)
 
 text<-c()
 for (i in 1:dim(b)[1]){
@@ -400,8 +401,7 @@ chart_link
 ```
 
 
-```{r}
-
+```{r Plot of Over/Underperformers, cache=TRUE}
 full_teams<- total_stats %>% group_by(TEAMS) %>% summarize(Expected_Place=mean(as.numeric(PLACES)), SD_Simulated_Place=sd(as.numeric(PLACES))) %>% dplyr::arrange(Expected_Place)
 
 url="https://www.tfrrs.org/results/xc/16726/NCAA_Division_III_Cross_Country_Championships"
@@ -412,7 +412,17 @@ natties_2019_results<-table_of_tables[[1]] %>% select(PL, Team, Score)
 
 full_teams_plus_results<-left_join(full_teams, natties_2019_results, by=c("TEAMS"="Team"))
 
-full_teams_plus_results<- full_teams_plus_results %>% mutate(Norm_Prob_Rank = ifelse(pnorm(PL, mean=Expected_Place, sd=SD_Simulated_Place)>0.5, 1-pnorm(PL, mean=Expected_Place, sd=SD_Simulated_Place), pnorm(PL, mean=Expected_Place, sd=SD_Simulated_Place)))
+full_teams_plus_results<- full_teams_plus_results %>% mutate(Norm_Prob_Rank = pnorm(PL, mean=Expected_Place, sd=SD_Simulated_Place))
+
+###Plot the major under/overperformers
+
+ranking_jumps=full_teams_plus_results %>% dplyr::arrange(Norm_Prob_Rank) %>% mutate(Rankings_Jump=Expected_Place-PL) %>% arrange(desc(PL))
+
+prob_ranks<-ranking_jumps$TEAMS
+ranking_jumps$TEAMS<-factor(ranking_jumps$TEAMS, levels=prob_ranks)
+
+ggplot(ranking_jumps, aes(x=TEAMS, y=Rankings_Jump))+geom_bar(aes(fill=Norm_Prob_Rank), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet")+coord_flip()
+
 ```
 
 
