@@ -1,16 +1,17 @@
 ---
 title: "Team Running Final Write Up"
-author: "Ethan Asbhy, Daniel Rosen, Nate Stringham"
+author: "Ethan Ashby, Daniel Rosen, Nate Stringham"
 date: "12/14/2019"
 output: html_document
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r}
+```{r Packages, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 library(magrittr)
 library(rvest)
 library(xml2)
@@ -26,7 +27,7 @@ library(RColorBrewer)
 ```
 
 
-```{r Initial Codestuff, cache=TRUE}
+```{r Initial Codestuff, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ###Initial codestuff
 urls <- c("https://www.tfrrs.org/results/xc/16561", "https://www.tfrrs.org/results/xc/16562",
            "https://www.tfrrs.org/results/xc/16563", "https://www.tfrrs.org/results/xc/16564",
@@ -73,7 +74,7 @@ for(url in urls) {
 
 ```
 
-```{r Get Team Names, cache=TRUE}
+```{r Get Team Names, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ###########
 ##Meet Results for National Qualifiers
 ###########
@@ -114,7 +115,7 @@ for(i in 1:length(titles[])) {
 teamnames<-unique(df$TEAM)
 ```
 
-```{r URLS, cache=TRUE}
+```{r URLS, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 #####Pulling meet results for national qualifiers
 urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.tfrrs.org/teams/MN_college_m_Carleton.html", 
         "https://www.tfrrs.org/teams/CA_college_m_Claremont_Mudd_Scripps.html", "https://www.tfrrs.org/teams/MD_college_m_Johns_Hopkins.html",
@@ -162,7 +163,9 @@ urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.
 ```
 
 
-```{r scraper, cache=TRUE}
+*2019*
+
+```{r scraper, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 team_races<-list()
 for(url in urls) {
   print(url)
@@ -259,7 +262,7 @@ all_results <- all_results %>% mutate(MEETNAME=str_trim(MEETNAME))
 write.csv(all_results, "2019_all_results3.csv")
 ```
 
-```{r Bijon's Race Adjustments, cache=TRUE}
+```{r Bijon's Race Adjustments, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ######Bijon Race Adjustments
 
 webpage<-read_html("https://bijanmazaheri.wordpress.com/2019/11/18/2019-diii-meet-adjustments-men/")
@@ -269,7 +272,7 @@ colnames(course_corrections)<-c("Meet", "Score")
 course_corrections<-course_corrections %>% filter(Meet!="Meet")
 ```
 
-```{r RUN Analysis, cache=TRUE}
+```{r Data Consolidation and Adjustment, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 #########################
 ###get teams that qualified and only select their top 7 runners
 #########################
@@ -305,7 +308,7 @@ filtered_results <-  left_join(filtered_results, course_corrections,
 
 ```
 
-```{r}
+```{r Lubridate, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ###Lubridate over the list
 
 library(lubridate)
@@ -313,12 +316,12 @@ filtered_results <- filtered_results %>% mutate(ADJ_TIME=(period_to_seconds(ms(f
 
 ```
 
-```{r}
+```{r Split Results, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ####Now create split dataframe where each index is a runner and their races are included
 split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
 ```
 
-```{r}
+```{r SIMULATE, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 set.seed(11)
 sim_stats<-list()
 total_stats<-list()
@@ -368,7 +371,7 @@ total_stats=do.call(rbind, total_stats)
 total_stats$PLACES<-as.factor(total_stats$PLACES)
 ```
 
-```{r Interactive Plot with Win Probabilities}
+```{r Interactive Plot with Win Probabilities, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 #######
 #Interactive Plotly Bar Chart w/ Various Place Probabilities
 #######
@@ -398,10 +401,11 @@ chart_link = api_create(q, filename="bar-text")
 chart_link
 
 
+
 ```
 
 
-```{r Plot of Over/Underperformers, cache=TRUE}
+```{r Plot of Over/Underperformers, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 full_teams<- total_stats %>% group_by(TEAMS) %>% summarize(Expected_Place=mean(as.numeric(PLACES)), SD_Simulated_Place=sd(as.numeric(PLACES))) %>% dplyr::arrange(Expected_Place)
 
 url="https://www.tfrrs.org/results/xc/16726/NCAA_Division_III_Cross_Country_Championships"
@@ -424,13 +428,315 @@ ranking_jumps$TEAMS<-factor(ranking_jumps$TEAMS, levels=prob_ranks)
 ggplot(ranking_jumps, aes(x=TEAMS, y=Rankings_Jump))+geom_bar(aes(fill=Norm_Prob_Rank), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet")+coord_flip()
 ```
 
+```{r Redo Plot of Over/Underperformers, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+over_under_performers<-total_stats %>% group_by(TEAMS) %>% summarize(mean_Score=mean(SCORES), sd_Score=sd(SCORES)) %>% arrange(mean_Score)
 
-```{r Score Differential}
+url="https://www.tfrrs.org/results/xc/16726/NCAA_Division_III_Cross_Country_Championships"
+webpage <- read_html(url)
+print("read webpage")
+table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+natties_2019_results<-table_of_tables[[1]] %>% select(PL, Team, Score)
+
+expected_vs_observed<-left_join(over_under_performers, natties_2019_results, by=c("TEAMS" = "Team"))
+
+expected_vs_observed<-expected_vs_observed %>% group_by(TEAMS) %>% mutate(Prob_Result=pnorm(Score, mean=mean_Score, sd=sd_Score)) %>% arrange(Prob_Result)
+
+prob_ranks<-expected_vs_observed$TEAMS
+expected_vs_observed$TEAMS<-factor(expected_vs_observed$TEAMS, levels=prob_ranks)
+
+ggplot(expected_vs_observed, aes(x=TEAMS, y=mean_Score-Score))+geom_bar(aes(fill=Prob_Result), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet")+ylab("Improvement in Score vs Simulated Expectation")+coord_flip()
+
+```
+
+```{r Score Differential, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 #Look at Scoring Differentials
 score_differential=sim_stats %>% filter(PLACES==2) %>% select(SCORES) - sim_stats %>% filter(PLACES==1) %>% select(SCORES)
 champions=sim_stats %>% filter(PLACES==1)%>% select(TEAMS)
 differentials=cbind(champions, score_differential)
 
 differentials %>% group_by(TEAMS) %>% summarize(mean_diff=mean(SCORES))
+```
+
+
+
+
+
+*2018*
+
+
+```{r 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+#Which teams were at Nationals in 2018?
+url="https://www.tfrrs.org/results/xc/15028/NCAA_Division_III_Cross_Country_Championships%250A"
+webpage <- read_html(url)
+table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+teamnames<-table_of_tables[[3]]$Team
+
+#URLS
+urls<-c("https://www.tfrrs.org/teams/IL_college_m_North_Central_IL.html",
+        "https://www.tfrrs.org/teams/MO_college_m_Washington_U.html",
+        "https://www.tfrrs.org/teams/WI_college_m_Wis_La_Crosse.html",
+        "https://www.tfrrs.org/teams/xc/PA_college_m_Haverford.html",
+        "https://www.tfrrs.org/teams/IA_college_m_Wartburg.html",
+        "https://www.tfrrs.org/teams/xc/MA_college_m_Amherst.html",
+        "https://www.tfrrs.org/teams/CA_college_m_Pomona_Pitzer.html",
+        "https://www.tfrrs.org/teams/MA_college_m_Williams.html",
+        "https://www.tfrrs.org/teams/MD_college_m_Johns_Hopkins.html",
+        "https://www.tfrrs.org/teams/NY_college_m_Geneseo_St.html",
+        "https://www.tfrrs.org/teams/WI_college_m_Wis_Eau_Claire.html",
+        "https://www.tfrrs.org/teams/IL_college_m_U_of_Chicago.html",
+        "https://www.tfrrs.org/teams/NY_college_m_RPI.html",
+        "https://www.tfrrs.org/teams/MN_college_m_Carleton.html", 
+        "https://www.tfrrs.org/teams/xc/VT_college_m_Middlebury.html",
+        "https://www.tfrrs.org/teams/MA_college_m_MIT.html",
+        "https://www.tfrrs.org/teams/TN_college_m_Rhodes.html",
+        "https://www.tfrrs.org/teams/xc/PA_college_m_Carnegie_Mellon.html",
+        "https://www.tfrrs.org/teams/xc/MI_college_m_Calvin.html", 
+        "https://www.tfrrs.org/teams/IN_college_m_DePauw.html",
+        "https://www.tfrrs.org/teams/xc/OH_college_m_Case_Western.html",
+        "https://www.tfrrs.org/teams/xc/WI_college_m_Wis_Stout.html",
+        "https://www.tfrrs.org/teams/xc/MN_college_m_St_Olaf.html",
+        "https://www.tfrrs.org/teams/xc/KY_college_m_Berea.html",
+        "https://www.tfrrs.org/teams/MA_college_m_Tufts.html",
+        "https://www.tfrrs.org/teams/xc/ME_college_m_Bates.html",
+        "https://www.tfrrs.org/teams/CA_college_m_Claremont_Mudd_Scripps.html", 
+        "https://www.tfrrs.org/teams/OH_college_m_Otterbein.html",
+        "https://www.tfrrs.org/teams/xc/NY_college_m_Oneonta.html",
+        "https://www.tfrrs.org/teams/xc/MN_college_m_St_Thomas.html",
+        "https://www.tfrrs.org/teams/xc/GA_college_m_Emory.html",
+        "https://www.tfrrs.org/teams/NY_college_m_RIT.html")
+
+#get results links
+team_races<-list()
+for(url in urls) {
+  print(url)
+  webpage <- read_html(url)
+  print("read webpage")
+  links_tmp=str_match_all(webpage, "<a href=\"(.*?)\"")
+  links=links_tmp[[1]][,2]
+  links=links[grepl("/results/", links)]
+  links=unique(links)
+  links=links[setdiff(1:length(links), grep('[[:digit:]]{5}/[[:digit:]]{6}', links))]
+  table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+  index=grep("DATE", table_of_tables)
+  dates_and_links=table_of_tables[[index]]
+  dates_and_links<-cbind(dates_and_links, links)
+  dates_and_links<-dates_and_links %>% filter(grepl("/results/xc/", dates_and_links$links))
+  name=stringr::str_split(url, "_m_")[[1]][2]
+  name=stringr::str_split(name, ".html")[[1]][1]
+  dates_and_links=dates_and_links %>% filter(grepl(2018, dates_and_links$DATE))
+  dates_and_links$links<-paste("https:", gsub("%0A", "%250A", dates_and_links$links), sep="")
+  team_races[[name]]<-dates_and_links
+}
+
+#get correct teamnames
+indices<-c()
+for (i in 1:length(names(team_races))){
+  if(str_sub(as.character(names(team_races)[i]), -4, -1)=="l_IL"){indices<-c(indices, 1)}
+  else if(str_sub(as.character(names(team_races)[i]), -4, -1)=="o_St"){indices<-c(indices, 10)}
+  else if(str_sub(as.character(names(team_races)[i]), -4, -1)=="on_U"){indices<-c(indices, 2)}
+else{indices<-c(indices, grep(str_sub(as.character(names(team_races)[i]), -4, -1), teamnames))}
+}
+
+names(team_races)<-teamnames[indices]
+
+
+###########
+#GET RESULTS
+###########
+
+season_results<-list()
+
+#for course corrections
+resdf <- data.frame(PL=integer(),
+                 NAME=character(),
+                 YEAR=character(),
+                 TEAM=character(),
+                 TIME=character(),
+                 COURSE=character(),
+                 DATE=character(),
+                 MEETNAME=character()
+)
+                 
+for (j in 1:length(team_races)){
+racelinks<-team_races[[j]]$links
+print(names(team_races)[j])
+
+#for getting results that we want to play around with
+tmpdf <- data.frame(PL=integer(),
+                 NAME=character(),
+                 YEAR=character(),
+                 TEAM=character(),
+                 TIME=character(),
+                 COURSE=character(),
+                 DATE=character(),
+                 MEETNAME=character()
+)
+
+
+for(url in racelinks) {
+  print(names(team_races)[j])
+  print(url)
+  webpage <- read_html(url)
+  print("read webpage")
+  table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+  titles <- html_nodes(webpage, "h3")
+  meetnamelinks <-html_nodes(webpage, "a")
+  courses <- html_nodes(webpage, ".inline-block")
+    #generate possible indices
+    
+    if(length(titles)>length(table_of_tables)){titles=titles[2:length(titles)]}
+    if(length(titles)<length(table_of_tables)){function(){}}
+    else{
+    poss_indices=grep("8K|8000|8,000|8k", titles)
+    if (length(poss_indices)==0){function(){}}
+    else{
+      for(i in 1:length(poss_indices)) {
+      if(grepl("Individual", titles[poss_indices[i]])) {
+        table_index <- poss_indices[i]
+        print(table_index)
+        current_data <- table_of_tables[[table_index]] %>% select(NAME, YEAR, TEAM, TIME)
+        current_data <- current_data %>% mutate(DATE=html_text(courses[4][1]))
+        current_data <- current_data %>% mutate(MEETNAME=html_text(meetnamelinks[[14]]))
+        if(str_length(html_text(courses[5][1])) > 4) {
+          current_data <- current_data %>% mutate(COURSE=html_text(courses[5][1]))
+        } else {
+          current_data <- current_data %>% mutate(COURSE="NA")
+        }
+      tmpdf <-rbind (tmpdf, current_data)
+      resdf <- rbind(resdf, current_data)
+    }}
+  }
+}
+}
+season_results[[j]]<-tmpdf %>% filter(TEAM==names(team_races)[j])
+}
+
+
+all_results <- data.frame(NAME=character(),
+                 YEAR=character(),
+                 TEAM=character(),
+                 TIME=character(),
+                 COURSE=character(),
+                 DATE=character(),
+                 MEETNAME=character())
+
+for(i in seq(1, 32)) {
+    all_results = rbind(all_results, season_results[[i]])
+}
+
+all_results <- all_results %>% mutate(MEETNAME=str_trim(MEETNAME))
+write.csv(all_results, "2018_all_results.csv")
+
+```
+
+```{r Course Corrections, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+###Correction is median difference in times between national meet and meet in question (for those who ran both) 
+resdf<-resdf %>% distinct()
+corrected<-matrix(ncol=86)
+for (i in 1:length(unique(resdf$MEETNAME))){
+  meet_one<-resdf %>% filter(MEETNAME==unique(resdf$MEETNAME)[i])
+  meet_one$TIME<-period_to_seconds(ms(meet_one$TIME))
+  tmpvec<-c()
+  for (j in 1:length(unique(resdf$MEETNAME))){
+  meet_two<-resdf %>% filter(MEETNAME==unique(resdf$MEETNAME)[j]) %>% distinct()
+  meet_two$TIME<-period_to_seconds(ms(meet_two$TIME))
+  tmp=inner_join(meet_one, meet_two, by="NAME") 
+  tmpvec<-c(tmpvec, median(tmp$TIME.x-tmp$TIME.y, na.rm=TRUE))
+  }
+  corrected<-rbind(corrected, tmpvec)
+}
+
+corrected<-corrected[2:dim(corrected)[1],]
+corrections<-corrected[1,]
+names(corrections)<-unique(resdf$MEETNAME)
+corrections<-corrections[!is.na(corrections)]
+
+########
+#Adjust course times
+########
+#Nationals 2018
+url="https://www.tfrrs.org/results/xc/15028/NCAA_Division_III_Cross_Country_Championships%250A"
+webpage <- read_html(url)
+table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+runners<-table_of_tables[[4]]$NAME
+
+#factor in course adjustments
+all_results<-read.csv("2018_all_results.csv")
+all_results<- all_results %>% filter(NAME %in% runners)
+indices=match(all_results$MEETNAME, str_trim(names(corrections)))
+adjusted_results <- all_results %>% mutate(ADJ_TIME=period_to_seconds(ms(TIME))+corrections[indices])
+
+#Split by name
+split_results_18<-split(adjusted_results, f=adjusted_results$NAME, drop=TRUE)
+```
+
+```{r Simulate, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(11)
+sim_stats<-list()
+total_stats<-list()
+
+for(count in seq(1, 100)) {
+df <- data.frame(INDEX=numeric(), MEAN=numeric(), SD=numeric())
+teams <- c()
+
+for(i in seq(1, length(split_results))){
+
+  personal.mean <- split_results_18[[i]] %>% group_by(NAME) %>% summarize(MEAN=mean(ADJ_TIME, na.rm=TRUE)) %>% pull()
+  personal.sd <- split_results_18[[i]] %>% group_by(NAME) %>% summarize(SD=sd(ADJ_TIME, na.rm = TRUE)) %>% pull()
+  teams <- append(teams, as.character(split_results_18[[i]]$TEAM[1]))
+  df[nrow(df) + 1,] = c(i, personal.mean, personal.sd)
+}
+
+
+df$NAMES <- names(split_results)
+df$TEAMS <- teams
+
+sim.df <- data.frame(SIMTIME=numeric())
+
+##one iteration of the sim we want to do
+for(j in seq(1, nrow(df))) {
+    sim.df[nrow(sim.df) + 1,] = c(rnorm(1, df$MEAN[j], df$SD[j]))
+}
+sim.df$NAMES=names(split_results_18)
+sim.df$TEAMS=df$TEAMS
+
+ordered_results_simulated <- sim.df %>% arrange(SIMTIME)
+ordered_results_simulated$SCORE = seq(1,nrow(ordered_results_simulated))
+
+#keep adding rows to df for total and then group to get avg scores, place
+
+team_scores <- arrange(ordered_results_simulated %>% group_by(TEAMS) %>% 
+                        summarize(TEAM_SCORE=sum(head(SCORE, 5))), TEAM_SCORE)
+
+sim_stats[[count]]<-data.frame(TEAMS=team_scores$TEAMS[1:4], PLACES=seq(1:4), SCORES=team_scores$TEAM_SCORE[1:4])
+
+total_stats[[count]]<-data.frame(TEAMS=team_scores$TEAMS, PLACES=seq(1:length(team_scores$TEAMS)), SCORES=team_scores$TEAM_SCORE)
+}
+
+sim_stats = do.call(rbind, sim_stats)
+sim_stats$PLACES<-as.factor(sim_stats$PLACES)
+
+total_stats=do.call(rbind, total_stats)
+total_stats$PLACES<-as.factor(total_stats$PLACES)
+
+```
+
+```{r Over/UnderPerformers 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+over_under_performers<-total_stats %>% group_by(TEAMS) %>% summarize(mean_Score=mean(SCORES), sd_Score=sd(SCORES)) %>% arrange(mean_Score)
+
+url="https://www.tfrrs.org/results/xc/15028/NCAA_Division_III_Cross_Country_Championships%250A"
+webpage <- read_html(url)
+print("read webpage")
+table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
+natties_2018_results<-table_of_tables[[3]] %>% select(PL, Team, Score)
+
+expected_vs_observed<-left_join(over_under_performers, natties_2018_results, by=c("TEAMS" = "Team"))
+
+expected_vs_observed<-expected_vs_observed %>% group_by(TEAMS) %>% mutate(Prob_Result=pnorm(Score, mean=mean_Score, sd=sd_Score)) %>% arrange(Prob_Result)
+
+prob_ranks<-expected_vs_observed$TEAMS
+expected_vs_observed$TEAMS<-factor(expected_vs_observed$TEAMS, levels=prob_ranks)
+
+ggplot(expected_vs_observed, aes(x=TEAMS, y=mean_Score-Score))+geom_bar(aes(fill=Prob_Result), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet")+ylab("Improvement in Score vs Simulated Expectation")+coord_flip()
 ```
 
