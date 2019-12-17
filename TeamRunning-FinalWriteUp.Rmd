@@ -365,10 +365,10 @@ total_stats[[count]]<-data.frame(TEAMS=team_scores$TEAMS, PLACES=seq(1:length(te
 }
 
 sim_stats = do.call(rbind, sim_stats)
-sim_stats$PLACES<-as.factor(sim_stats$PLACES)
+#sim_stats$PLACES<-as.factor(sim_stats$PLACES)
 
 total_stats=do.call(rbind, total_stats)
-total_stats$PLACES<-as.factor(total_stats$PLACES)
+#total_stats$PLACES<-as.factor(total_stats$PLACES)
 ```
 
 ```{r Interactive Plot with Win Probabilities, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
