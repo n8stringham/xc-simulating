@@ -404,7 +404,6 @@ chart_link
 
 ```
 
-
 ```{r Plot of Over/Underperformers, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 full_teams<- total_stats %>% group_by(TEAMS) %>% summarize(Expected_Place=mean(as.numeric(PLACES)), SD_Simulated_Place=sd(as.numeric(PLACES))) %>% dplyr::arrange(Expected_Place)
 
@@ -665,6 +664,7 @@ all_results<-read.csv("2018_all_results.csv")
 all_results<- all_results %>% filter(NAME %in% runners)
 indices=match(all_results$MEETNAME, str_trim(names(corrections)))
 adjusted_results <- all_results %>% mutate(ADJ_TIME=period_to_seconds(ms(TIME))+corrections[indices])
+#write.csv(adjusted_results, "2018_Results_Adjusted.csv")
 
 #Split by name
 split_results_18<-split(adjusted_results, f=adjusted_results$NAME, drop=TRUE)
