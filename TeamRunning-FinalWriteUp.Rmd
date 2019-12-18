@@ -5,7 +5,8 @@ date: "12/18/2019"
 output: html_document
 ---
 
-#Summary
+Summary
+
 The ability of a program to peak its runners well at the end of the season is often what determines national champions. 
 To determine how well programs peak their athletes, we will use simulations of cross country results to score a hypothetical "national meet" over two years, and evaluate these simulated results against the real results of the national meet to evaluate overperforming and underperforming programs. To run the simulation, we collect results for each relevant athlete in the Divison at each meet. For each athlete, we maintain a vector of adjusted times from the current season. Then we sample from a distribution created from athlete's vector and sort the athletes into a meet ranking, which we then score as a cross country meet. We compare the actual nationals result from that year to our simulated result to determine how well a team peaked. We can do this over a number of years to evaluate different programs. We assign a score to each program based on how consistently they peaked at the national meet and how far they exceeded our simulated expectation of their finish at the national meet. IF we have time we'll make a shiny app!
 
@@ -37,7 +38,7 @@ The first step is to build a scraper which is capable of retrieving data from th
 
 This first codechunk compiles results from each of the regional meets into a single data frame. To qualify for the national meet, each team must compete in a regional meet. 2 teams automatically qualify from each region and the remainder of the nationals field is selected through a well-documented selection process. 
 
-```{r Initial Codestuff, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Initial Codestuff, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 ###Initial codestuff
 urls <- c("https://www.tfrrs.org/results/xc/16561", "https://www.tfrrs.org/results/xc/16562",
            "https://www.tfrrs.org/results/xc/16563", "https://www.tfrrs.org/results/xc/16564",
@@ -85,7 +86,7 @@ for(url in urls) {
 ```
 
 Now we are ready to get a more relevant and complex data set, including the data which we gathered above. This code chunk grabs all of the names of teams which competed at the national meet.
-```{r Get Team Names, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Get Team Names, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 ###########
 ##Meet Results for National Qualifiers
 ###########
@@ -126,7 +127,7 @@ for(i in 1:length(titles[])) {
 teamnames<-unique(df$TEAM)
 ```
 Now we are ready to get a more interesting data set. The NCAA cross-country regular season is about 8 weeks long, and most teams compete in anywhere from 4-6 meets over these weeks. To get a hold of these meets, we scrape each qualified team's TFRRS page, which has a schedule of meets which they competed at.
-```{r URLS, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r URLS, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #####Pulling meet results for national qualifiers
 urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.tfrrs.org/teams/MN_college_m_Carleton.html", 
         "https://www.tfrrs.org/teams/CA_college_m_Claremont_Mudd_Scripps.html", "https://www.tfrrs.org/teams/MD_college_m_Johns_Hopkins.html",
@@ -175,7 +176,7 @@ urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.
 
 *2019*
 
-```{r scraper, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r scraper, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 team_races<-list()
 for(url in urls) {
   print(url)
@@ -279,7 +280,7 @@ Now, each course runs a little bit differently. There are many factors which go 
 Repeat this for each pair of courses which had similar runners. When all of the pairwise adjustments have been calculated, pick one course to serve as a baseline, and then use least-squares to pick a single adjustment for each course. 
 
 Since Bijan already did all this work, we used his adjustments for 2019, and then generated our own adjustments in a slightly simpler way for 2018.
-```{r Bijon's Race Adjustments, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Bijans Race Adjustments, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ######Bijon Race Adjustments
 
 webpage<-read_html("https://bijanmazaheri.wordpress.com/2019/11/18/2019-diii-meet-adjustments-men/")
@@ -323,7 +324,7 @@ filtered_results <- filtered_results %>% mutate(MEETNAME_CORR=ifelse(MEETNAME_CO
 filtered_results <-  left_join(filtered_results, course_corrections, 
                                by=c("MEETNAME_CORR" = "Meet"))
 
-#write.csv(filtered_results, "2019_Results_Adjusted.csv")
+
 
 ```
 Convert the times to seconds, and then apply the adjustment time.
@@ -332,62 +333,47 @@ Convert the times to seconds, and then apply the adjustment time.
 
 library(lubridate)
 filtered_results <- filtered_results %>% mutate(ADJ_TIME=(period_to_seconds(ms(filtered_results$TIME))-as.numeric(filtered_results$Score)))
-
+write.csv(filtered_results, "2019_Results_Adjusted.csv")
 ```
 Split the results by name. Now we have a mapping of names to dataframes with race results, which we will use to simulate a national meet. 
 ```{r Split Results, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ####Now create split dataframe where each index is a runner and their races are included
-split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
+#split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
 ```
 Simulation time! For each person, we sample from a normal distribution centered on their average time from the season with a variance corresponding to their true variance throughout the year. One thing that we could change is the exact distribution we sample from for each athlete: it's far more likely to have a one-off horrible race than a one-off incredible race, so we could use a skewed distribution instead of a strictly normal distribution to model this. This would prevent any horrible, horrible days from allowing a runner to have an excellent simulated result on the other side of the center of the distribution. 
 ```{r SIMULATE, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 set.seed(11)
 sim_stats<-list()
 total_stats<-list()
+filtered_results <- read.csv("2019_Results_Adjusted.csv")
+
+
 
 for(count in seq(1, 100)) {
-df <- data.frame(INDEX=numeric(), MEAN=numeric(), SD=numeric())
-teams <- c()
-
-for(i in seq(1, length(split_results))){
-
-  personal.mean <- split_results[[i]] %>% group_by(NAME) %>% summarize(MEAN=mean(ADJ_TIME, na.rm=TRUE)) %>% pull()
-  personal.sd <- split_results[[i]] %>% group_by(NAME) %>% summarize(SD=sd(ADJ_TIME, na.rm = TRUE)) %>% pull()
-  teams <- append(teams, as.character(split_results[[i]]$TEAM[1]))
-  df[nrow(df) + 1,] = c(i, personal.mean, personal.sd)
-}
-
-
-df$NAMES <- names(split_results)
-df$TEAMS <- teams
-
-sim.df <- data.frame(SIMTIME=numeric())
-
-##one iteration of the sim we want to do
-for(j in seq(1, nrow(df))) {
-    sim.df[nrow(sim.df) + 1,] = c(rnorm(1, df$MEAN[j], df$SD[j]))
-}
-sim.df$NAMES=names(split_results)
-sim.df$TEAMS=df$TEAMS
-
-ordered_results_simulated <- sim.df %>% arrange(SIMTIME)
-ordered_results_simulated$SCORE = seq(1,nrow(ordered_results_simulated))
-
-#keep adding rows to df for total and then group to get avg scores, place
-
-team_scores <- arrange(ordered_results_simulated %>% group_by(TEAMS) %>% 
-                        summarize(TEAM_SCORE=sum(head(SCORE, 5))), TEAM_SCORE)
-
-sim_stats[[count]]<-data.frame(TEAMS=team_scores$TEAMS[1:4], PLACES=seq(1:4), SCORES=team_scores$TEAM_SCORE[1:4])
-
-total_stats[[count]]<-data.frame(TEAMS=team_scores$TEAMS, PLACES=seq(1:length(team_scores$TEAMS)), SCORES=team_scores$TEAM_SCORE)
+  # Get the mean and sd for each individual
+  individuals <- filtered_results %>% group_by(NAME) %>%
+    summarize(MEAN=mean(ADJ_TIME, na.rm=TRUE),
+                        SD=sd(ADJ_TIME, na.rm = TRUE))
+  # Add join this data back to the full data set
+  teams <- left_join(individuals, filtered_results)
+  teams <- distinct(teams, NAME, SD, MEAN, TEAM)
+  
+  # simulate time for each individual and add to the data frame
+  sims <- teams %>% mutate(SIMTIME = rnorm(nrow(teams), teams$MEAN, teams$SD))
+  ordered_results_simulated <- sims %>% arrange(SIMTIME)
+  ordered_results_simulated$SCORE = seq(1,nrow(ordered_results_simulated))
+  
+  team_scores <- arrange(ordered_results_simulated %>% group_by(TEAM) %>% 
+                           summarize(TEAM_SCORE=sum(head(SCORE, 5))), TEAM_SCORE)
+  
+  sim_stats[[count]]<-data.frame(TEAMS=team_scores$TEAM[1:4], PLACES=seq(1:4), SCORES=team_scores$TEAM_SCORE[1:4])
+  
+  total_stats[[count]]<-data.frame(TEAMS=team_scores$TEAM, PLACES=seq(1:length(team_scores$TEAM)), SCORES=team_scores$TEAM_SCORE)
 }
 
 sim_stats = do.call(rbind, sim_stats)
-#sim_stats$PLACES<-as.factor(sim_stats$PLACES)
 
 total_stats=do.call(rbind, total_stats)
-#total_stats$PLACES<-as.factor(total_stats$PLACES)
 ```
 
 ```{r Interactive Plot with Win Probabilities, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
@@ -416,8 +402,8 @@ q <- plot_ly(dat, x = ~x, y = ~y, type = 'bar', text = text,
 
 q
 
-chart_link = api_create(q, filename="bar-text")
-chart_link
+#chart_link = api_create(q, filename="bar-text")
+#chart_link
 
 
 
@@ -480,7 +466,7 @@ differentials %>% group_by(TEAMS) %>% summarize(mean_diff=mean(SCORES))
 *2018*
 Repeat all of the above for the 2018 season.
 
-```{r 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #Which teams were at Nationals in 2018?
 url="https://www.tfrrs.org/results/xc/15028/NCAA_Division_III_Cross_Country_Championships%250A"
 webpage <- read_html(url)
@@ -642,11 +628,12 @@ for(i in seq(1, 32)) {
 
 all_results <- all_results %>% mutate(MEETNAME=str_trim(MEETNAME))
 write.csv(all_results, "2018_all_results.csv")
-
+write.csv(resdf, "2018resdf.csv")
 ```
 
 ```{r Course Corrections, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ###Correction is median difference in times between national meet and meet in question (for those who ran both) 
+resdf <- read.csv("2018resdf.csv")
 resdf<-resdf %>% distinct()
 corrected<-matrix(ncol=86)
 for (i in 1:length(unique(resdf$MEETNAME))){
@@ -691,50 +678,40 @@ split_results_18<-split(adjusted_results, f=adjusted_results$NAME, drop=TRUE)
 set.seed(11)
 sim_stats<-list()
 total_stats<-list()
+results2018 <- read.csv("2018_Results_Adjusted.csv")
+
 
 for(count in seq(1, 100)) {
-df <- data.frame(INDEX=numeric(), MEAN=numeric(), SD=numeric())
-teams <- c()
-
-for(i in seq(1, length(split_results))){
-
-  personal.mean <- split_results_18[[i]] %>% group_by(NAME) %>% summarize(MEAN=mean(ADJ_TIME, na.rm=TRUE)) %>% pull()
-  personal.sd <- split_results_18[[i]] %>% group_by(NAME) %>% summarize(SD=sd(ADJ_TIME, na.rm = TRUE)) %>% pull()
-  teams <- append(teams, as.character(split_results_18[[i]]$TEAM[1]))
-  df[nrow(df) + 1,] = c(i, personal.mean, personal.sd)
-}
-
-
-df$NAMES <- names(split_results)
-df$TEAMS <- teams
-
-sim.df <- data.frame(SIMTIME=numeric())
-
-##one iteration of the sim we want to do
-for(j in seq(1, nrow(df))) {
-    sim.df[nrow(sim.df) + 1,] = c(rnorm(1, df$MEAN[j], df$SD[j]))
-}
-sim.df$NAMES=names(split_results_18)
-sim.df$TEAMS=df$TEAMS
-
-ordered_results_simulated <- sim.df %>% arrange(SIMTIME)
-ordered_results_simulated$SCORE = seq(1,nrow(ordered_results_simulated))
-
-#keep adding rows to df for total and then group to get avg scores, place
-
-team_scores <- arrange(ordered_results_simulated %>% group_by(TEAMS) %>% 
-                        summarize(TEAM_SCORE=sum(head(SCORE, 5))), TEAM_SCORE)
-
-sim_stats[[count]]<-data.frame(TEAMS=team_scores$TEAMS[1:4], PLACES=seq(1:4), SCORES=team_scores$TEAM_SCORE[1:4])
-
-total_stats[[count]]<-data.frame(TEAMS=team_scores$TEAMS, PLACES=seq(1:length(team_scores$TEAMS)), SCORES=team_scores$TEAM_SCORE)
+  # Get the mean and sd for each individual
+  individuals <- results2018 %>% group_by(NAME) %>%
+    summarize(MEAN=mean(ADJ_TIME, na.rm=TRUE),
+                        SD=sd(ADJ_TIME, na.rm = TRUE))
+  # Add join this data back to the full data set
+  teams <- left_join(individuals, results2018)
+  teams <- distinct(teams, NAME, SD, MEAN, TEAM)
+  
+  # simulate time for each individual and add to the data frame
+  sims <- teams %>% mutate(SIMTIME = rnorm(nrow(teams), teams$MEAN, teams$SD))
+  ordered_results_simulated <- sims %>% arrange(SIMTIME)
+  ordered_results_simulated$SCORE = seq(1,nrow(ordered_results_simulated))
+  
+  team_scores <- arrange(ordered_results_simulated %>% group_by(TEAM) %>% 
+                           summarize(TEAM_SCORE=sum(head(SCORE, 5))), TEAM_SCORE)
+  
+  sim_stats[[count]]<-data.frame(TEAMS=team_scores$TEAM[1:4], PLACES=seq(1:4), SCORES=team_scores$TEAM_SCORE[1:4])
+  
+  total_stats[[count]]<-data.frame(TEAMS=team_scores$TEAM, PLACES=seq(1:length(team_scores$TEAM)), SCORES=team_scores$TEAM_SCORE)
 }
 
 sim_stats = do.call(rbind, sim_stats)
-sim_stats$PLACES<-as.factor(sim_stats$PLACES)
 
 total_stats=do.call(rbind, total_stats)
-total_stats$PLACES<-as.factor(total_stats$PLACES)
+
+#sim_stats = do.call(rbind, sim_stats)
+#sim_stats$PLACES<-as.factor(sim_stats$PLACES)
+
+#total_stats=do.call(rbind, total_stats)
+#total_stats$PLACES<-as.factor(total_stats$PLACES)
 
 ```
 
@@ -759,7 +736,7 @@ q <- plot_ly(dat, x = ~x, y = ~y, type = 'bar', text = text,
          yaxis = list(title = "Probability of Podium"))
 
 q
-chart_link = api_create(q, filename="interactive plot 2018 natties")
+#chart_link = api_create(q, filename="interactive plot 2018 natties")
 #chart_link
 ```
 
@@ -790,8 +767,8 @@ library(maps)
 
 dfPoints=data.frame(lat=c(41.772769, 38.648823, 43.817551, 40.009308, 42.728922, 42.370855, 34.101537, 42.712813, 39.329901, 42.796139, 41.788720, 42.729700, 44.461325, 44.008000, 42.360162, 40.442748, 42.929477, 41.504277, 44.871635, 44.461663, 37.572379, 44.105683, 34.101217, 40.125502, 42.471333, 44.943629, 33.797065, 44.026202, 38.212276), 
                     long=c(-88.143896, -90.310903, -91.231014, -75.307651, -92.482281, -72.517003, -117.713866, -73.203150, -76.620507, -77.823939, -87.598681, -73.678770, -93.156124, -73.176009, -71.094117, -79.943116, -85.588804, -81.608395, -91.926698, -93.182732, -84.290675, -70.202229, -117.714030, -82.936466, -75.062472, -93.190534, -84.322369, -88.550783, -85.758406),
-                    places=paste(c(intersect(c$TEAM, d$TEAM), "Oshkosh", "Louisville")))
-map("usa")
+                    places=paste(c(intersect(results2018$TEAM, filtered_results$TEAM), "Oshkosh", "Louisville")))
+maps::map("usa")
 points(x=dfPoints$long, y=dfPoints$lat, col = "blue", pch=20, cex=1)
 points(x = dfPoints %>% filter(places!= "Oshkosh") %>% filter(places!= "Louisville") %>% select(long) %>% unlist(), y = dfPoints %>% filter(places!= "Oshkosh") %>% filter(places!= "Louisville") %>% select(lat) %>% unlist(), col = "red", pch=20, cex=1)
 text("Louisville", x=tail(dfPoints$long, 1), y=tail(dfPoints$lat, 1),  col="slateblue", cex=0.5, pos=3)
