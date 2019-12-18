@@ -46,7 +46,7 @@ ui <- fluidPage(
         # Input: Selector for choosing a team of interest
         selectInput(inputId = "selectedTeam",
                     label = "Choose a team of interest",
-                    choices = c("All", "Pomona-Pitzer", "Williams", "North Central", ""))
+                    choices = c("All", "Pomona-Pitzer", "Williams", "North Central (Ill.)", ""))
       ),
       
       # Show a table of simulation statistics

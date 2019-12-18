@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r Packages, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Packages, cache=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 library(magrittr)
 library(rvest)
 library(xml2)
@@ -36,9 +36,11 @@ Sys.setenv("plotly_api_key"="YixbeTuCDflejGIr8e9k")
 
 The first step is to build a scraper which is capable of retrieving data from the official database of NCAA cross country and track and field times, TFRRS. The database is very robust but has no API for statisticians to pull data in a reasonable way, so this actually turns out to be quite difficult. TFRRS also threatens users with cease and desist messages if they detect too much traffic from one user, or if they notice a blog post on the web about it. Despite its draconian policies with regard to data usage, they remain far and away the most robust way to access data on collegiate runners. 
 
+The inaccessibility of TFRRS data raises the question of to whom the data truly belong. Athletes who ran the very times in the database are unable to retrieve that same data. Furthermore, this data is produced by third party timing services who post meet results on their own timing websites, and TFRRS only serves as an aggregator. As such, we felt no real ethical issues scraping TFRRS. 
+
 This first codechunk compiles results from each of the regional meets into a single data frame. To qualify for the national meet, each team must compete in a regional meet. 2 teams automatically qualify from each region and the remainder of the nationals field is selected through a well-documented selection process. 
 
-```{r Initial Codestuff, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r Initial Codestuff, cache=TRUE, echo=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 ###Initial codestuff
 urls <- c("https://www.tfrrs.org/results/xc/16561", "https://www.tfrrs.org/results/xc/16562",
            "https://www.tfrrs.org/results/xc/16563", "https://www.tfrrs.org/results/xc/16564",
@@ -86,7 +88,7 @@ for(url in urls) {
 ```
 
 Now we are ready to get a more relevant and complex data set, including the data which we gathered above. This code chunk grabs all of the names of teams which competed at the national meet.
-```{r Get Team Names, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+```{r Get Team Names, cache=TRUE, echo=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
 ###########
 ##Meet Results for National Qualifiers
 ###########
@@ -126,7 +128,7 @@ for(i in 1:length(titles[])) {
 
 teamnames<-unique(df$TEAM)
 ```
-Now we are ready to get a more interesting data set. The NCAA cross-country regular season is about 8 weeks long, and most teams compete in anywhere from 4-6 meets over these weeks. To get a hold of these meets, we scrape each qualified team's TFRRS page, which has a schedule of meets which they competed at.
+We are ready to get a more interesting data set. The NCAA cross-country regular season is about 8 weeks long, and most teams compete in anywhere from 4-6 meets over these weeks. To get a hold of these meets, we scrape each qualified team's TFRRS page, which has a schedule of meets which they competed at.
 ```{r URLS, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 #####Pulling meet results for national qualifiers
 urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.tfrrs.org/teams/MN_college_m_Carleton.html", 
@@ -154,7 +156,8 @@ urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.
         "https://www.tfrrs.org/teams/IN_college_m_DePauw.html", "https://www.tfrrs.org/teams/MA_college_m_Bridgewater_St.html",
         "https://www.tfrrs.org/teams/xc/MN_college_m_St_Olaf.html", "https://www.tfrrs.org/teams/VA_college_m_Southern_Virginia.html",
         "https://www.tfrrs.org/teams/xc/NY_college_m_Ithaca.html", "https://www.tfrrs.org/teams/CA_college_m_Caltech.html",
-        "https://www.tfrrs.org/teams/xc/NY_college_m_Oneonta.html","https://www.tfrrs.org/teams/xc/OH_college_m_Case_Western.html",
+        "https://www.tfrrs.org/teams/xc/NY_college_m_Oneonta.html",
+        "https://www.tfrrs.org/teams/xc/OH_college_m_Case_Western.html",
         "https://www.tfrrs.org/teams/TX_college_m_Trinity_TX.html", "https://www.tfrrs.org/teams/IA_college_m_Loras.html",
         "https://www.tfrrs.org/teams/MA_college_m_WPI.html", "https://www.tfrrs.org/teams/PA_college_m_Widener.html",
         "https://www.tfrrs.org/teams/WI_college_m_Wis_Stevens_Point.html", "https://www.tfrrs.org/teams/VA_college_m_Mary_Washington.html",
@@ -279,7 +282,8 @@ Now, each course runs a little bit differently. There are many factors which go 
 Repeat this for each pair of courses which had similar runners. When all of the pairwise adjustments have been calculated, pick one course to serve as a baseline, and then use least-squares to pick a single adjustment for each course. 
 
 Since Bijan already did all this work, we used his adjustments for 2019, and then generated our own adjustments in a slightly simpler way for 2018.
-```{r Bijans Race Adjustments, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+
+```{r Bijans Race Adjustments, cache=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 ######Bijon Race Adjustments
 
 webpage<-read_html("https://bijanmazaheri.wordpress.com/2019/11/18/2019-diii-meet-adjustments-men/")
@@ -288,7 +292,7 @@ course_corrections<-as.data.frame(table_of_tables[[1]])
 colnames(course_corrections)<-c("Meet", "Score")
 course_corrections<-course_corrections %>% filter(Meet!="Meet")
 ```
-Here, we filter our data further to only select the top 7 runners (the runners which ran at the national meet) for each team. We also make a number of slight modifications to the data set to clean up meet names, and correct for a mistake with a single Williams meet (domain specific knowledge!).
+Then, we filter our data further to only select the top 7 runners (the runners which ran at the national meet) for each team. We also make a number of slight modifications to the data set to clean up meet names, and correct for a mistake with a single Williams meet (domain specific knowledge!). Omitting the chunk 
 ```{r Data Consolidation and Adjustment, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 #########################
 ###get teams that qualified and only select their top 7 runners
@@ -327,20 +331,20 @@ filtered_results <-  left_join(filtered_results, course_corrections,
 
 ```
 Convert the times to seconds, and then apply the adjustment time.
-```{r Lubridate, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Lubridate, cache=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 ###Lubridate over the list
 
 library(lubridate)
 filtered_results <- filtered_results %>% mutate(ADJ_TIME=(period_to_seconds(ms(filtered_results$TIME))-as.numeric(filtered_results$Score)))
 write.csv(filtered_results, "2019_Results_Adjusted.csv")
 ```
-Split the results by name. Now we have a mapping of names to dataframes with race results, which we will use to simulate a national meet. 
+
 ```{r Split Results, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ####Now create split dataframe where each index is a runner and their races are included
 #split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
 ```
-Simulation time! For each person, we sample from a normal distribution centered on their average time from the season with a variance corresponding to their true variance throughout the year. One thing that we could change is the exact distribution we sample from for each athlete: it's far more likely to have a one-off horrible race than a one-off incredible race, so we could use a skewed distribution instead of a strictly normal distribution to model this. This would prevent any horrible, horrible days from allowing a runner to have an excellent simulated result on the other side of the center of the distribution. 
-```{r SIMULATE, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+Simulation time! For each person, we sample from a normal distribution centered on their average time from the season with a variance corresponding to their true variance throughout the year. One thing that we could change is the exact distribution we sample from for each athlete: it's far more likely to have a one-off horrible race than a one-off incredible race, so we could use a skewed distribution instead of a strictly normal distribution to model this. This would prevent any horrible, horrible days from allowing a runner to have an excellent simulated result on the other side of the center of the distribution. More simply: Having a very bad day should increase the upside potential of a runner.
+```{r SIMULATE, cache=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 set.seed(11)
 sim_stats<-list()
 total_stats<-list()
@@ -374,8 +378,8 @@ sim_stats = do.call(rbind, sim_stats)
 
 total_stats=do.call(rbind, total_stats)
 ```
-
-```{r Interactive Plot with Win Probabilities, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+Here's an interactive plot made with Plotly.
+```{r Interactive Plot with Win Probabilities, cache=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 #######
 #Interactive Plotly Bar Chart w/ Various Place Probabilities
 #######
@@ -407,6 +411,7 @@ q
 
 
 ```
+Below we plot the ranking of each team in the simulation less the true outcome at the national meet, giving us the "rankings jump" of each team.
 
 ```{r Plot of Over/Underperformers, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 full_teams<- total_stats %>% group_by(TEAMS) %>% summarize(Expected_Place=mean(as.numeric(PLACES)), SD_Simulated_Place=sd(as.numeric(PLACES))) %>% dplyr::arrange(Expected_Place)
@@ -430,7 +435,7 @@ ranking_jumps$TEAMS<-factor(ranking_jumps$TEAMS, levels=prob_ranks)
 
 ggplot(ranking_jumps, aes(x=TEAMS, y=Rankings_Jump))+geom_bar(aes(fill=Norm_Prob_Rank), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet 2019")+coord_flip()
 ```
-
+Same plot as above, sorted by the significance of the jump given the range of the team's results in simulations. 
 ```{r Redo Plot of Over/Underperformers, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 over_under_performers<-total_stats %>% group_by(TEAMS) %>% summarize(mean_Score=mean(SCORES), sd_Score=sd(SCORES)) %>% arrange(mean_Score)
 
@@ -625,8 +630,8 @@ all_results <- all_results %>% mutate(MEETNAME=str_trim(MEETNAME))
 write.csv(all_results, "2018_all_results.csv")
 write.csv(resdf, "2018resdf.csv")
 ```
-
-```{r Course Corrections, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+For course corrections in 2018, we use the nationals course as a baseline instead of doing the pairwise adjustments and doing least squares. We take each runner that ran on a course and took the median time difference from the nationals course as the adjustment factor.
+```{r Course Corrections, cache=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
 ###Correction is median difference in times between national meet and meet in question (for those who ran both) 
 resdf <- read.csv("2018resdf.csv")
 resdf<-resdf %>% distinct()
@@ -668,8 +673,8 @@ adjusted_results <- all_results %>% mutate(ADJ_TIME=period_to_seconds(ms(TIME))+
 #Split by name
 split_results_18<-split(adjusted_results, f=adjusted_results$NAME, drop=TRUE)
 ```
-
-```{r Simulate, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+We simulate again in the same way. Omitting the code-chunk.
+```{r Simulate, cache=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 set.seed(11)
 sim_stats<-list()
 total_stats<-list()
@@ -710,7 +715,7 @@ total_stats=do.call(rbind, total_stats)
 
 ```
 
-```{r Interactive Plot with Win Probabilities 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Interactive Plot with Win Probabilities 2018, cache=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
 b<-sim_stats %>% group_by(TEAMS) %>% summarize(On_Podium=n()/100, P_first=sum(PLACES==1)/100, P_second=sum(PLACES==2)/100, P_third=sum(PLACES==3)/100, P_fourth=sum(PLACES==4)/100) %>% dplyr::arrange(desc(On_Podium))
 
 
@@ -722,7 +727,7 @@ text <- c(text, paste("Prob Podium:", b[i,2], "\n", "Prob 1st:", b[i,3], "\n", "
 dat <- data.frame(x=b$TEAMS, y=b$On_Podium, text=text)
 dat$x <- factor(dat$x, levels = as.character(b$TEAMS))
 
-q <- plot_ly(dat, x = ~x, y = ~y, type = 'bar', text = text,
+h <- plot_ly(dat, x = ~x, y = ~y, type = 'bar', text = text,
         marker = list(color = c('rgb(178,8,57)', 'rgb(0,115,96)', 'rgb(162,31,75)', 'rgb(204,21,69)', 'rgb(242,206,15)', 'rgb(13,43,129)', 'rgb(71,11,119)', 'rgb(31,56,107)', 'rgb(99,35,153)','rgb(226,30,21)', 'rgb(245,130,43)', 'rgb(188,0,0)', 'rgb(124,20,21)', 'rgb(238,173,18)'),
                       line = list(color = 'rgb(8,48,107)',
                                   width = 1.5))) %>%
@@ -730,7 +735,7 @@ q <- plot_ly(dat, x = ~x, y = ~y, type = 'bar', text = text,
          xaxis = list(title = ""),
          yaxis = list(title = "Probability of Podium"))
 
-q
+h
 #chart_link = api_create(q, filename="interactive plot 2018 natties")
 #chart_link
 ```
@@ -757,7 +762,8 @@ ggplot(expected_vs_observed, aes(x=TEAMS, y=mean_Score-Score))+geom_bar(aes(fill
 
 # Exploring potential of Travel Distance
 
-```{r Map, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+We thought, hey, maybe teams which travel further for nationals have harder time performing to expectation at the national meet. We use this map to illustrate the travel distances for each team. One thing of note is that most teams in the Midwest drive to nationals, almost regardless of where the meet is. Air travel is stressful for recovery which could affect runners' perfomance in the national meet.
+```{r Map, cache=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 library(maps)
 
 dfPoints=data.frame(lat=c(41.772769, 38.648823, 43.817551, 40.009308, 42.728922, 42.370855, 34.101537, 42.712813, 39.329901, 42.796139, 41.788720, 42.729700, 44.461325, 44.008000, 42.360162, 40.442748, 42.929477, 41.504277, 44.871635, 44.461663, 37.572379, 44.105683, 34.101217, 40.125502, 42.471333, 44.943629, 33.797065, 44.026202, 38.212276), 
