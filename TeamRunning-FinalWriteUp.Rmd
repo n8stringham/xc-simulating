@@ -6,7 +6,8 @@ output: html_document
 ---
 
 #Summary
-The ability of a program to peak its runners well at the end of the season is often what determines national champions. To determine how well programs peak their athletes, we will use simulations of cross country results to score a hypothetical "national meet". To run the simulation, we collected  for each athlete in the Divison at each meet. For each athlete, we maintain a vector of speed ratings from the current season, with more recent performances weighted more heavily than early season -- either we do this or we assume the performances are normally distributed and sample from a normal distribution with a variance calculated from our speed ratings. Then we sample from each athlete's vector and sort the athletes into a meet ranking, which we then score as a cross country meet. We compare the actual nationals result from that year to our simulated result to determine how well a team peaked. We can do this over a number of years to evaluate different programs. We assign a score to each program based on how consistently they peaked at the national meet and how far they exceeded our simulated expectation of their finish at the national meet. IF we have time we'll make a shiny app!
+The ability of a program to peak its runners well at the end of the season is often what determines national champions. 
+To determine how well programs peak their athletes, we will use simulations of cross country results to score a hypothetical "national meet", and evaluate these simulated results against the real results of the national meet to evaluate good and bad programs. To run the simulation, we collect results for each relevant athlete in the Divison at each meet. For each athlete, we maintain a vector of adjusted times from the current season. Then we sample from a distribution created from athlete's vector and sort the athletes into a meet ranking, which we then score as a cross country meet. We compare the actual nationals result from that year to our simulated result to determine how well a team peaked. We can do this over a number of years to evaluate different programs. We assign a score to each program based on how consistently they peaked at the national meet and how far they exceeded our simulated expectation of their finish at the national meet. IF we have time we'll make a shiny app!
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -29,6 +30,9 @@ library(colorspace)
 ?distinct()
 ```
 
+The first step is to build a scraper which is capable of retrieving data from the official database of NCAA cross country and track and field times, TFRRS. The database is very robust but has no API for statisticians to pull data in a reasonable way, so this actually turns out to be quite difficult. TFRRS also threatens users with cease and desist messages if they detect too much traffic from one user, or if they notice a blog post on the web about it. Despite its draconian policies with regard to data usage, they remain far and away the most robust way to access data on collegiate runners. 
+
+This first codechunk compiles results from each of the regional meets into a single data frame. To qualify for the national meet, each team must compete in a regional meet. 2 teams automatically qualify from each region and the remainder of the nationals field is selected through a well-documented selection process. 
 
 ```{r Initial Codestuff, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ###Initial codestuff
@@ -77,6 +81,7 @@ for(url in urls) {
 
 ```
 
+Now we are ready to get a more relevant and complex data set, including the data which we gathered above. This code chunk grabs all of the names of teams which competed at the national meet.
 ```{r Get Team Names, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ###########
 ##Meet Results for National Qualifiers
@@ -117,7 +122,7 @@ for(i in 1:length(titles[])) {
 
 teamnames<-unique(df$TEAM)
 ```
-
+Now we are ready to get a more interesting data set. The NCAA cross-country regular season is about 8 weeks long, and most teams compete in anywhere from 4-6 meets over these weeks. To get a hold of these meets, we scrape each qualified team's TFRRS page, which has a schedule of meets which they competed at.
 ```{r URLS, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 #####Pulling meet results for national qualifiers
 urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.tfrrs.org/teams/MN_college_m_Carleton.html", 
@@ -164,7 +169,6 @@ urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.
         )
 
 ```
-
 
 *2019*
 
@@ -264,7 +268,14 @@ for(i in seq(1, 82)) {
 all_results <- all_results %>% mutate(MEETNAME=str_trim(MEETNAME))
 write.csv(all_results, "2019_all_results3.csv")
 ```
+We grab all of the results from each of the meets that an NCAA qualifying team raced during the regular season. Then, we filter for the HTML table which has some variation of 8k, or 8000m, as a title -- this is the race distance that the men compete at. 
 
+
+Now, each course runs a little bit differently. There are many factors which go into this, such as course surface, course condition, weather conditions, and elevation profiles. However, since athletes run on multiple courses per year, there is a reasonable way to make adjustments for these differences. Bijan Mazaheri, a Caltech PhD. student, ran a nifty program to generate these adjustments. The idea is to look at two courses at a time, and pick all the athletes which ran on both. Then, take the difference in times between each athlete, and take the mean of all those times to generate a relative difference in times between the two courses. This is the pairwise adjustment for these two courses. To convert a time from the first course to the second course, add this adjustment factor to each athlete's time. 
+
+Repeat this for each pair of courses which had similar runners. When all of the pairwise adjustments have been calculated, pick one course to serve as a baseline, and then use least-squares to pick a single adjustment for each course. 
+
+Since Bijan already did all this work, we used his adjustments for 2019, and then generated our own adjustments in a slightly simpler way for 2018.
 ```{r Bijon's Race Adjustments, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ######Bijon Race Adjustments
 
@@ -274,7 +285,7 @@ course_corrections<-as.data.frame(table_of_tables[[1]])
 colnames(course_corrections)<-c("Meet", "Score")
 course_corrections<-course_corrections %>% filter(Meet!="Meet")
 ```
-
+Here, we filter our data further to only select the top 7 runners (the runners which ran at the national meet) for each team. We also make a number of slight modifications to the data set to clean up meet names, and correct for a mistake with a single Williams meet (domain specific knowledge!).
 ```{r Data Consolidation and Adjustment, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 #########################
 ###get teams that qualified and only select their top 7 runners
@@ -312,7 +323,7 @@ filtered_results <-  left_join(filtered_results, course_corrections,
 #write.csv(filtered_results, "2019_Results_Adjusted.csv")
 
 ```
-
+Convert the times to seconds, and then apply the adjustment time.
 ```{r Lubridate, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ###Lubridate over the list
 
@@ -320,12 +331,12 @@ library(lubridate)
 filtered_results <- filtered_results %>% mutate(ADJ_TIME=(period_to_seconds(ms(filtered_results$TIME))-as.numeric(filtered_results$Score)))
 
 ```
-
+Split the results by name. Now we have a mapping of names to dataframes with race results, which we will use to simulate a national meet. 
 ```{r Split Results, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 ####Now create split dataframe where each index is a runner and their races are included
 split_results<-split(filtered_results, f=filtered_results$NAME, drop=TRUE)
 ```
-
+Simulation time! For each person, we sample from a normal distribution centered on their average time from the season with a variance corresponding to their true variance throughout the year. One thing that we could change is the exact distribution we sample from for each athlete: it's far more likely to have a one-off horrible race than a one-off incredible race, so we could use a skewed distribution instead of a strictly normal distribution to model this. This would prevent any horrible, horrible days from allowing a runner to have an excellent simulated result on the other side of the center of the distribution. 
 ```{r SIMULATE, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 set.seed(11)
 sim_stats<-list()
@@ -464,7 +475,7 @@ differentials %>% group_by(TEAMS) %>% summarize(mean_diff=mean(SCORES))
 
 
 *2018*
-
+Repeat all of the above for the 2018 season.
 
 ```{r 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 #Which teams were at Nationals in 2018?
@@ -770,8 +781,9 @@ ggplot(expected_vs_observed, aes(x=TEAMS, y=mean_Score-Score))+geom_bar(aes(fill
 *Exploring potential of Travel Distance*
 
 ```{r}
+devtools::install_github("dkahle/ggmap")
 library(ggmap)
-library(maps)
+
 
 places<-data.frame(LOCATIONS=paste(c(intersect(c$TEAM, d$TEAM), "Oshkosh", "Louisville")), Coordinates=list(c(41.772769, -88.143896), c(38.648823, -90.310903), c(43.817551, -91.231014), c(40.009308, -75.307651), c(42.728922, -92.482281), c(42.370855, -72.517003)))
 
