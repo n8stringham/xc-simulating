@@ -5,6 +5,8 @@ date: "12/14/2019"
 output: html_document
 ---
 
+#Summary
+The ability of a program to peak its runners well at the end of the season is often what determines national champions. To determine how well programs peak their athletes, we will use simulations of cross country results to score a hypothetical "national meet". To run the simulation, we collected  for each athlete in the Divison at each meet. For each athlete, we maintain a vector of speed ratings from the current season, with more recent performances weighted more heavily than early season -- either we do this or we assume the performances are normally distributed and sample from a normal distribution with a variance calculated from our speed ratings. Then we sample from each athlete's vector and sort the athletes into a meet ranking, which we then score as a cross country meet. We compare the actual nationals result from that year to our simulated result to determine how well a team peaked. We can do this over a number of years to evaluate different programs. We assign a score to each program based on how consistently they peaked at the national meet and how far they exceeded our simulated expectation of their finish at the national meet. IF we have time we'll make a shiny app!
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -22,6 +24,7 @@ library(tidyverse)
 library(ggplot2)
 library(plotly)
 library(RColorBrewer)
+library(colorspace)
 
 ?distinct()
 ```
@@ -306,6 +309,8 @@ filtered_results <- filtered_results %>% mutate(MEETNAME_CORR=ifelse(MEETNAME_CO
 filtered_results <-  left_join(filtered_results, course_corrections, 
                                by=c("MEETNAME_CORR" = "Meet"))
 
+#write.csv(filtered_results, "2019_Results_Adjusted.csv")
+
 ```
 
 ```{r Lubridate, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
@@ -391,7 +396,7 @@ q <- plot_ly(dat, x = ~x, y = ~y, type = 'bar', text = text,
         marker = list(color = c('rgb(85,13,152)', 'rgb(178,8,57)', 'rgb(232,168,8)', 'rgb(188,0,0)', 'rgb(13,43,129)', 'rgb(247,138,12)', 'rgb(31,56,107)', 'rgb(162,31,75)', 'rgb(0,115,96)', 'rgb(134,43,45)', 'rgb(245,130,43)', 'rgb(254,209,76)'),
                       line = list(color = 'rgb(8,48,107)',
                                   width = 1.5))) %>%
-  layout(title = "Results of National Meet Simulations",
+  layout(title = "Results of National Meet Simulations 2019",
          xaxis = list(title = ""),
          yaxis = list(title = "Probability of Podium"))
 
@@ -424,7 +429,7 @@ ranking_jumps=full_teams_plus_results %>% dplyr::arrange(Norm_Prob_Rank) %>% mut
 prob_ranks<-ranking_jumps$TEAMS
 ranking_jumps$TEAMS<-factor(ranking_jumps$TEAMS, levels=prob_ranks)
 
-ggplot(ranking_jumps, aes(x=TEAMS, y=Rankings_Jump))+geom_bar(aes(fill=Norm_Prob_Rank), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet")+coord_flip()
+ggplot(ranking_jumps, aes(x=TEAMS, y=Rankings_Jump))+geom_bar(aes(fill=Norm_Prob_Rank), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet 2019")+coord_flip()
 ```
 
 ```{r Redo Plot of Over/Underperformers, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
@@ -432,7 +437,6 @@ over_under_performers<-total_stats %>% group_by(TEAMS) %>% summarize(mean_Score=
 
 url="https://www.tfrrs.org/results/xc/16726/NCAA_Division_III_Cross_Country_Championships"
 webpage <- read_html(url)
-print("read webpage")
 table_of_tables <- xml_find_all(webpage, "//table") %>% html_table
 natties_2019_results<-table_of_tables[[1]] %>% select(PL, Team, Score)
 
@@ -443,8 +447,7 @@ expected_vs_observed<-expected_vs_observed %>% group_by(TEAMS) %>% mutate(Prob_R
 prob_ranks<-expected_vs_observed$TEAMS
 expected_vs_observed$TEAMS<-factor(expected_vs_observed$TEAMS, levels=prob_ranks)
 
-ggplot(expected_vs_observed, aes(x=TEAMS, y=mean_Score-Score))+geom_bar(aes(fill=Prob_Result), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet")+ylab("Improvement in Score vs Simulated Expectation")+coord_flip()
-
+ggplot(expected_vs_observed, aes(x=TEAMS, y=mean_Score-Score))+geom_bar(aes(fill=Prob_Result), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet 2019")+ylab("Improvement in Score vs Simulated Expectation")+coord_flip()
 ```
 
 ```{r Score Differential, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
@@ -721,6 +724,29 @@ total_stats$PLACES<-as.factor(total_stats$PLACES)
 
 ```
 
+```{r Interactive Plot with Win Probabilities 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+b<-sim_stats %>% group_by(TEAMS) %>% summarize(On_Podium=n()/100, P_first=sum(PLACES==1)/100, P_second=sum(PLACES==2)/100, P_third=sum(PLACES==3)/100, P_fourth=sum(PLACES==4)/100) %>% dplyr::arrange(desc(On_Podium))
+
+
+text<-c()
+for (i in 1:dim(b)[1]){
+text <- c(text, paste("Prob Podium:", b[i,2], "\n", "Prob 1st:", b[i,3], "\n", "Prob 2nd:", b[i,4], "\n", "Prob 3rd:", b[i,5], "\n", "Prob 4th:", b[i,6]))
+}
+
+dat <- data.frame(x=b$TEAMS, y=b$On_Podium, text=text)
+dat$x <- factor(dat$x, levels = as.character(b$TEAMS))
+
+q <- plot_ly(dat, x = ~x, y = ~y, type = 'bar', text = text,
+        marker = list(color = c('rgb(178,8,57)', 'rgb(0,115,96)', 'rgb(162,31,75)', 'rgb(204,21,69)', 'rgb(242,206,15)', 'rgb(13,43,129)', 'rgb(71,11,119)', 'rgb(31,56,107)', 'rgb(99,35,153)','rgb(226,30,21)', 'rgb(245,130,43)', 'rgb(188,0,0)', 'rgb(124,20,21)', 'rgb(238,173,18)'),
+                      line = list(color = 'rgb(8,48,107)',
+                                  width = 1.5))) %>%
+  layout(title = "Results of National Meet Simulations 2018",
+         xaxis = list(title = ""),
+         yaxis = list(title = "Probability of Podium"))
+
+q
+```
+
 ```{r Over/UnderPerformers 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 over_under_performers<-total_stats %>% group_by(TEAMS) %>% summarize(mean_Score=mean(SCORES), sd_Score=sd(SCORES)) %>% arrange(mean_Score)
 
@@ -737,6 +763,29 @@ expected_vs_observed<-expected_vs_observed %>% group_by(TEAMS) %>% mutate(Prob_R
 prob_ranks<-expected_vs_observed$TEAMS
 expected_vs_observed$TEAMS<-factor(expected_vs_observed$TEAMS, levels=prob_ranks)
 
-ggplot(expected_vs_observed, aes(x=TEAMS, y=mean_Score-Score))+geom_bar(aes(fill=Prob_Result), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet")+ylab("Improvement in Score vs Simulated Expectation")+coord_flip()
+ggplot(expected_vs_observed, aes(x=TEAMS, y=mean_Score-Score))+geom_bar(aes(fill=Prob_Result), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet 2018")+ylab("Improvement in Score vs Simulated Expectation")+coord_flip()
+```
+
+
+*Exploring potential of Travel Distance*
+
+```{r}
+library(ggmap)
+library(maps)
+
+places<-data.frame(LOCATIONS=paste(c(intersect(c$TEAM, d$TEAM), "Oshkosh", "Louisville")), Coordinates=list(c(41.772769, -88.143896), c(38.648823, -90.310903), c(43.817551, -91.231014), c(40.009308, -75.307651), c(42.728922, -92.482281), c(42.370855, -72.517003)))
+
+key="AIzaSyB0T31gsbwbcHGWuejaGYUe5pEekr3BRwk"
+
+set.seed(10)
+c<-read.csv("2018_Results_Adjusted.csv")
+d<-read.csv("2019_Results_Adjusted.csv")
+
+coords<-c(c(41.772769, -88.143896), c(38.648823, -90.310903), c(43.817551, -91.231014), c(40.009308, -75.307651), c(42.728922, -92.482281), c(42.370855, -72.517003))
+
+dfPoints=data.frame(lat=c(41.772769, 38.648823, 43.817551, 40.009308, 42.728922, 42.370855), long=c(-88.143896, -90.310903, -91.231014, -75.307651, -92.482281, -72.517003))
+map("usa")
+points(x = dfPoints$long, y = dfPoints$lat, col = "red")
+lines(x = dfPoints$long, y = dfPoints$lat, col = "blue")
 ```
 
