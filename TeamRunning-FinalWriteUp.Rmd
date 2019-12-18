@@ -5,10 +5,10 @@ date: "12/18/2019"
 output: html_document
 ---
 
-Summary
+# Summary
 
 The ability of a program to peak its runners well at the end of the season is often what determines national champions. 
-To determine how well programs peak their athletes, we will use simulations of cross country results to score a hypothetical "national meet" over two years, and evaluate these simulated results against the real results of the national meet to evaluate overperforming and underperforming programs. To run the simulation, we collect results for each relevant athlete in the Divison at each meet. For each athlete, we maintain a vector of adjusted times from the current season. Then we sample from a distribution created from athlete's vector and sort the athletes into a meet ranking, which we then score as a cross country meet. We compare the actual nationals result from that year to our simulated result to determine how well a team peaked. We can do this over a number of years to evaluate different programs. We assign a score to each program based on how consistently they peaked at the national meet and how far they exceeded our simulated expectation of their finish at the national meet. IF we have time we'll make a shiny app!
+To determine how well programs peak their athletes, we will use simulations of cross country results to score a hypothetical "national meet" over two years, and evaluate these simulated results against the real results of the national meet to evaluate overperforming and underperforming programs. To run the simulation, we collect results for each relevant athlete in the Divison at each meet. For each athlete, we maintain a vector of adjusted times from the current season. Then we sample from a distribution created from athlete's vector and sort the athletes into a meet ranking, which we then score as a cross country meet. We compare the actual nationals result from that year to our simulated result to determine how well a team peaked. We can do this over a number of years to evaluate different programs. We assign a score to each program based on how consistently they peaked at the national meet and how far they exceeded our simulated expectation of their finish at the national meet. We also created a shiny app to allow users to the heuristic experience of running the simulation and assessing the stability of team places. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -174,7 +174,7 @@ urls<-c("https://www.tfrrs.org/teams/MD_college_m_Stevenson.html", "https://www.
 
 ```
 
-*2019*
+# 2019
 
 ```{r scraper, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
 team_races<-list()
@@ -273,7 +273,6 @@ all_results <- all_results %>% mutate(MEETNAME=str_trim(MEETNAME))
 write.csv(all_results, "2019_all_results3.csv")
 ```
 We grab all of the results from each of the meets that an NCAA qualifying team raced during the regular season. Then, we filter for the HTML table which has some variation of 8k, or 8000m, as a title -- this is the race distance that the men compete at. 
-
 
 Now, each course runs a little bit differently. There are many factors which go into this, such as course surface, course condition, weather conditions, and elevation profiles. However, since athletes run on multiple courses per year, there is a reasonable way to make adjustments for these differences. Bijan Mazaheri, a Caltech PhD. student, ran a nifty program to generate these adjustments. The idea is to look at two courses at a time, and pick all the athletes which ran on both. Then, take the difference in times between each athlete, and take the mean of all those times to generate a relative difference in times between the two courses. This is the pairwise adjustment for these two courses. To convert a time from the first course to the second course, add this adjustment factor to each athlete's time. 
 
@@ -459,11 +458,7 @@ differentials=cbind(champions, score_differential)
 differentials %>% group_by(TEAMS) %>% summarize(mean_diff=mean(SCORES))
 ```
 
-
-
-
-
-*2018*
+# 2018
 Repeat all of the above for the 2018 season.
 
 ```{r 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
@@ -760,7 +755,7 @@ ggplot(expected_vs_observed, aes(x=TEAMS, y=mean_Score-Score))+geom_bar(aes(fill
 ```
 
 
-*Exploring potential of Travel Distance*
+# Exploring potential of Travel Distance
 
 ```{r Map, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 library(maps)
