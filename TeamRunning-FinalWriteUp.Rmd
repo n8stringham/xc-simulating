@@ -30,7 +30,9 @@ library(colorspace)
 ?distinct()
 ```
 
-The first step is to build a scraper which is capable of retrieving data from the official database of NCAA cross country and track and field times, TFRRS. The database is very robust but has no API for statisticians to pull data in a reasonable way, so this actually turns out to be quite difficult. TFRRS also threatens users with cease and desist messages if they detect too much traffic from one user, or if they notice a blog post on the web about it. Despite its draconian policies with regard to data usage, they remain far and away the most robust way to access data on collegiate runners. 
+The first step is to build a scraper which is capable of retrieving data from the official database of NCAA cross country and track and field times, TFRRS. The database is very robust but has no API for statisticians to pull data in a reasonable way, so this actually turns out to be quite difficult. TFRRS also threatens users with cease and desist messages if they detect too much traffic from one user, or if they notice a blog post on the web about it. Despite its draconian policies with regard to data usage, they remain far and away the most centralized way to access data on collegiate runners. 
+
+The inaccessibility of TFRRS data raises the question of whom the data truly belong to. Athletes who ran the very times in the database are unable to retrieve that same data. Furthermore, this data is produced by third party timing services who post meet results on their own timing websites, and TFRRS only serves as an aggregator. As such, we felt no real ethical issues scraping TFRRS. 
 
 This first codechunk compiles results from each of the regional meets into a single data frame. To qualify for the national meet, each team must compete in a regional meet. 2 teams automatically qualify from each region and the remainder of the nationals field is selected through a well-documented selection process. 
 
@@ -386,7 +388,7 @@ sim_stats = do.call(rbind, sim_stats)
 total_stats=do.call(rbind, total_stats)
 #total_stats$PLACES<-as.factor(total_stats$PLACES)
 ```
-
+Here we plot the experimental probability of a team making it onto the podium (top 4). This is the minimum placing which receives a big trophy. You can see that Williams and North Central have the highest probability of making the podium, which matches the USTFCCCA coaches poll going into the national meet. That poll ranked Williams 1st and North Central 2nd.
 ```{r Interactive Plot with Win Probabilities, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 #######
 #Interactive Plotly Bar Chart w/ Various Place Probabilities
@@ -419,7 +421,7 @@ chart_link
 
 
 ```
-
+Below we plot the ranking of each team in the simulation minus the true outcome at the national meet, giving us the "rankings jump" of each team.
 ```{r Plot of Over/Underperformers, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 full_teams<- total_stats %>% group_by(TEAMS) %>% summarize(Expected_Place=mean(as.numeric(PLACES)), SD_Simulated_Place=sd(as.numeric(PLACES))) %>% dplyr::arrange(Expected_Place)
 
@@ -442,7 +444,7 @@ ranking_jumps$TEAMS<-factor(ranking_jumps$TEAMS, levels=prob_ranks)
 
 ggplot(ranking_jumps, aes(x=TEAMS, y=Rankings_Jump))+geom_bar(aes(fill=Norm_Prob_Rank), stat="identity")+theme_bw()+scale_fill_gradientn(colours=diverge_hsv(12))+ggtitle("Overperformers and Underperformers at the National Meet 2019")+coord_flip()
 ```
-
+Same plot as above, sorted by the significance of the jump given the range of the team's results in simulations. 
 ```{r Redo Plot of Over/Underperformers, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 over_under_performers<-total_stats %>% group_by(TEAMS) %>% summarize(mean_Score=mean(SCORES), sd_Score=sd(SCORES)) %>% arrange(mean_Score)
 
