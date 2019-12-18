@@ -379,7 +379,7 @@ sim_stats = do.call(rbind, sim_stats)
 total_stats=do.call(rbind, total_stats)
 ```
 Here's an interactive plot made with Plotly.
-```{r Interactive Plot with Win Probabilities, cache=TRUE, echo=TRUE, message=FALSE, warning=FALSE}
+```{r Interactive Plot with Win Probabilities, cache=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
 #######
 #Interactive Plotly Bar Chart w/ Various Place Probabilities
 #######
@@ -779,4 +779,7 @@ text("Wash U", x=dfPoints$long[2], y=dfPoints$lat[2], col="slateblue", cex=0.5, 
 text("Claremont", x=dfPoints$long[7], y=dfPoints$lat[7], col="slateblue", cex=0.5, pos=3)
 text("Williams", x=dfPoints$long[8], y=dfPoints$lat[8], col="slateblue", cex=0.5, pos=3)
 ```
+#Conclusion
+We found a few compelling results with this project. 1) We saw that it was a reasonable assumption to model runners' performances as coming from a normal distribution. 2) We saw that race adjustments need not be as computationally intensive as using least-squares to fit an adjustment time to a matrix of pairwise adjustments. And 3) While our simulations did a pretty good job of predicting podium finishes, making predictions for races has a lot of uncertainty, as evidenced by the range of finishing places over 100 simulations. The most challenging and time-consuming part of this project was building the scraper to reliably parse results from TFRRS.
 
+In results, we note that Carnegie Mellon consistently peaked very poorly at the national meet despite a high projected finish in simulations, while Pomona-Pitzer and Wash U. among others tend to perform at or above expectations at the national meets.
