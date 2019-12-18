@@ -27,6 +27,9 @@ library(plotly)
 library(RColorBrewer)
 library(colorspace)
 
+Sys.setenv("plotly_username"="ecaa2017")
+Sys.setenv("plotly_api_key"="YixbeTuCDflejGIr8e9k")
+
 ?distinct()
 ```
 
@@ -758,6 +761,8 @@ q <- plot_ly(dat, x = ~x, y = ~y, type = 'bar', text = text,
          yaxis = list(title = "Probability of Podium"))
 
 q
+chart_link = api_create(q, filename="interactive plot 2018 natties")
+#chart_link
 ```
 
 ```{r Over/UnderPerformers 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
@@ -782,24 +787,20 @@ ggplot(expected_vs_observed, aes(x=TEAMS, y=mean_Score-Score))+geom_bar(aes(fill
 
 *Exploring potential of Travel Distance*
 
-```{r}
-devtools::install_github("dkahle/ggmap")
-library(ggmap)
+```{r Map, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+library(maps)
 
-
-places<-data.frame(LOCATIONS=paste(c(intersect(c$TEAM, d$TEAM), "Oshkosh", "Louisville")), Coordinates=list(c(41.772769, -88.143896), c(38.648823, -90.310903), c(43.817551, -91.231014), c(40.009308, -75.307651), c(42.728922, -92.482281), c(42.370855, -72.517003)))
-
-key="AIzaSyB0T31gsbwbcHGWuejaGYUe5pEekr3BRwk"
-
-set.seed(10)
-c<-read.csv("2018_Results_Adjusted.csv")
-d<-read.csv("2019_Results_Adjusted.csv")
-
-coords<-c(c(41.772769, -88.143896), c(38.648823, -90.310903), c(43.817551, -91.231014), c(40.009308, -75.307651), c(42.728922, -92.482281), c(42.370855, -72.517003))
-
-dfPoints=data.frame(lat=c(41.772769, 38.648823, 43.817551, 40.009308, 42.728922, 42.370855), long=c(-88.143896, -90.310903, -91.231014, -75.307651, -92.482281, -72.517003))
+dfPoints=data.frame(lat=c(41.772769, 38.648823, 43.817551, 40.009308, 42.728922, 42.370855, 34.101537, 42.712813, 39.329901, 42.796139, 41.788720, 42.729700, 44.461325, 44.008000, 42.360162, 40.442748, 42.929477, 41.504277, 44.871635, 44.461663, 37.572379, 44.105683, 34.101217, 40.125502, 42.471333, 44.943629, 33.797065, 44.026202, 38.212276), 
+                    long=c(-88.143896, -90.310903, -91.231014, -75.307651, -92.482281, -72.517003, -117.713866, -73.203150, -76.620507, -77.823939, -87.598681, -73.678770, -93.156124, -73.176009, -71.094117, -79.943116, -85.588804, -81.608395, -91.926698, -93.182732, -84.290675, -70.202229, -117.714030, -82.936466, -75.062472, -93.190534, -84.322369, -88.550783, -85.758406),
+                    places=paste(c(intersect(c$TEAM, d$TEAM), "Oshkosh", "Louisville")))
 map("usa")
-points(x = dfPoints$long, y = dfPoints$lat, col = "red")
-lines(x = dfPoints$long, y = dfPoints$lat, col = "blue")
+points(x=dfPoints$long, y=dfPoints$lat, col = "blue", pch=20, cex=1)
+points(x = dfPoints %>% filter(places!= "Oshkosh") %>% filter(places!= "Louisville") %>% select(long) %>% unlist(), y = dfPoints %>% filter(places!= "Oshkosh") %>% filter(places!= "Louisville") %>% select(lat) %>% unlist(), col = "red", pch=20, cex=1)
+text("Louisville", x=tail(dfPoints$long, 1), y=tail(dfPoints$lat, 1),  col="slateblue", cex=0.5, pos=3)
+text("Oshkosh", x=dfPoints$long[28], y=dfPoints$lat[28], col="slateblue", cex=0.5, pos=3)
+text("North Central", x=dfPoints$long[1], y=dfPoints$lat[1], col="slateblue", cex=0.5, pos=3)
+text("Wash U", x=dfPoints$long[2], y=dfPoints$lat[2], col="slateblue", cex=0.5, pos=3)
+text("Claremont", x=dfPoints$long[7], y=dfPoints$lat[7], col="slateblue", cex=0.5, pos=3)
+text("Williams", x=dfPoints$long[8], y=dfPoints$lat[8], col="slateblue", cex=0.5, pos=3)
 ```
 
