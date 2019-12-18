@@ -27,6 +27,9 @@ library(plotly)
 library(RColorBrewer)
 library(colorspace)
 
+Sys.setenv("plotly_username"="ecaa2017")
+Sys.setenv("plotly_api_key"="YixbeTuCDflejGIr8e9k")
+
 ?distinct()
 ```
 
@@ -756,6 +759,8 @@ q <- plot_ly(dat, x = ~x, y = ~y, type = 'bar', text = text,
          yaxis = list(title = "Probability of Podium"))
 
 q
+chart_link = api_create(q, filename="interactive plot 2018 natties")
+#chart_link
 ```
 
 ```{r Over/UnderPerformers 2018, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
