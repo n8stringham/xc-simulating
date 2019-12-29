@@ -69,7 +69,7 @@ server <- function(input, output) {
 
    # Generate output
    output$simStats <- renderTable({
-     set.seed(11)
+     #set.seed(11)
      sim_stats<-list()
      total_stats<-list()
      for(count in seq(1, input$sims)) {
